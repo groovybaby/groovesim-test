@@ -1,0 +1,1927 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GrooveSim — Mono | Visible Ripples</title><style>
+:root{color-scheme:dark;--bg:#0b1421;--card:#132337;--line:#2b435c;--text:#e6f1ff;--muted:#a4b7cd;--ode:#52d5ee;--green:#e8b95c;--mix:#f28bbb}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1220px;margin:auto;padding:22px}h1{margin:0;font-size:clamp(24px,3vw,34px)}h2{font-size:18px;margin:0 0 12px}p{color:var(--muted);margin:7px 0 15px}.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px;margin-top:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.control{margin:10px 0}.control label{display:flex;justify-content:space-between;gap:12px;font-weight:650;margin-bottom:5px}input[type=range]{width:100%;accent-color:#78c8ff;cursor:pointer}button{border:1px solid #4c6a89;background:#234564;color:white;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:650}button:hover{background:#32608b}button.active{background:#21694f;border-color:#47c39b}.buttons{display:flex;flex-wrap:wrap;gap:8px}.badge{display:inline-block;border-radius:7px;padding:2px 8px;font-weight:700;background:#243c53}.ode{color:var(--ode)}.green{color:var(--green)}.mix{color:var(--mix)}canvas{width:100%;height:420px;display:block;background:#091522;border-radius:8px;border:1px solid #24405a;touch-action:pan-y}.legend{display:flex;gap:22px;flex-wrap:wrap;font-weight:700;margin:10px 0}.explain{background:#10283a;padding:12px 15px;border-radius:9px;border-left:3px solid #72c9e8}.small{font-size:13px;color:var(--muted)}@media(max-width:730px){.grid{grid-template-columns:1fr}canvas{height:350px}main{padding:10px}.panel{padding:12px}}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.viewpane{min-width:0}.viewpane canvas{height:410px}.viewpane .caption{font-size:13px;color:#a4b7cd;margin:7px 0}.wavezoom{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:12px;margin:5px 0 12px}.wavezoom .control{margin:0}.wavezoom button{white-space:nowrap}@media(max-width:650px){.wavezoom{grid-template-columns:1fr 1fr}.wavezoom button{grid-column:1/-1}}.three{background:#e8eff4!important;touch-action:none;cursor:grab}.three:active{cursor:grabbing}.extras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.extras .control{min-width:0}@media(max-width:900px){.split{grid-template-columns:1fr}.extras{grid-template-columns:1fr 1fr}}@media(max-width:540px){.extras{grid-template-columns:1fr}.viewpane canvas{height:340px}}
+/* Full-width desktop workspace: no fixed 1220px constraint. */
+main{width:100%;max-width:none;margin:0;padding:12px clamp(12px,1.6vw,30px) 24px}
+main>h1{font-size:clamp(22px,2vw,30px);line-height:1.2}
+main>p{margin:3px 0 7px;font-size:13px}
+.layouttag{font-size:12px;font-weight:600;vertical-align:middle;background:#204365;border:1px solid #406b89;color:#d5ecff;border-radius:20px;padding:3px 9px;margin-left:8px}
+.panel{margin-top:10px;padding:12px 15px}
+main>section.panel:first-of-type{padding:9px 13px}
+main>section.panel:first-of-type .buttons{gap:7px}
+main>section.panel:first-of-type button{padding:7px 12px}
+main>section.panel:first-of-type #status{margin:6px 0 0}
+.grid{gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid>.panel{margin-top:0}
+.extras{grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,2vw,30px)}
+.extras .control{margin:3px 0}
+.split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(16px,1.8vw,36px)}
+.viewpane canvas{height:clamp(450px,58vh,850px)}
+.viewpane .legend{margin:6px 0 8px;gap:14px}
+.viewpane h2{margin-bottom:7px}
+.wavezoom{margin:3px 0 7px;gap:9px}
+.wavezoom button{padding:7px 10px}
+.viewpane .caption{line-height:1.4;margin:7px 0}
+.explain{margin-top:10px}
+@media(min-width:1500px){.viewpane canvas{height:clamp(500px,62vh,920px)}.split{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.extras{grid-template-columns:repeat(2,minmax(0,1fr))}.viewpane canvas{height:440px}}
+@media(max-width:760px){.split{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.viewpane canvas{height:clamp(330px,48vh,520px)}.layouttag{display:none}}
+@media(max-width:540px){main{padding:9px}.extras{grid-template-columns:1fr 1fr}.wavezoom{grid-template-columns:1fr 1fr}.wavezoom button{grid-column:1/-1}}
+
+/* Compact desktop dashboard: keep every control and both views on screen. */
+html,body{height:100%;overflow:hidden}
+body{font-size:12px;line-height:1.25}
+.workspace{width:100%;height:100dvh;max-width:none;padding:6px 10px 5px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:16px;min-height:24px;flex:0 0 auto;white-space:nowrap}
+.topbar strong{font-size:16px}.subhead{color:#a4b7cd}.status{margin-left:auto;color:#a4b7cd;overflow:hidden;text-overflow:ellipsis;max-width:45%;font-size:11px}
+.toolbox{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:5px 9px;display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
+.toolrow{display:flex;align-items:center;gap:13px;min-height:35px}
+.toolrow+.toolrow{border-top:1px solid #29415b;padding-top:4px}
+.toolrow .buttons{gap:5px;flex:0 0 auto}
+button,.toolrow button,.toolrow .buttons button{padding:5px 9px;border-radius:5px;font-size:11px;line-height:1.1;white-space:nowrap}
+.control.compact{margin:0;min-width:0;flex:1}
+.control.compact label{margin:0 0 2px;font-size:11px;line-height:1.1;gap:5px;white-space:nowrap}
+.control.compact output{font-weight:750;color:#e6f1ff}
+.control.compact input{display:block;width:100%;height:14px;margin:0;accent-color:#78c8ff}
+.playrow .compact{max-width:270px}.playrow .buttons{flex:1}
+.sliderrow .compact{flex:1}
+.zoomrow .compact{flex:1}.zoomrow .modebuttons{margin-left:auto}
+.displays{flex:1 1 auto;min-height:0;gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.viewpane{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px}
+.viewhead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:23px;flex:0 0 auto}
+.viewhead h2{font-size:14px;white-space:nowrap;margin:0}
+.viewhead .legend{display:flex;gap:10px;flex-wrap:nowrap;white-space:nowrap;margin:0;font-size:11px}
+.viewpane canvas,.viewpane #plot,.viewpane #scene{height:100%;min-height:0;flex:1 1 auto;width:100%;border-radius:5px}
+.help{font-size:11px;color:#a4b7cd;flex:0 0 auto;position:relative;min-height:17px}
+.help summary{cursor:pointer;line-height:17px}.help[open]{position:absolute;bottom:22px;left:12px;right:12px;background:#132337;padding:10px;z-index:3;border:1px solid #49617c;border-radius:8px}.help p{font-size:12px;margin:5px 0;color:#c9d9ea}
+@media(max-width:1000px){.topbar .subhead{display:none}.toolrow{gap:6px}.toolrow button{padding:4px 6px!important}.viewhead .legend{gap:5px;font-size:10px}}
+@media(max-width:760px){html,body{overflow:auto}.workspace{height:auto;min-height:100dvh;overflow:visible}.toolrow{flex-wrap:wrap}.toolrow .control.compact{flex:1 1 140px}.displays{grid-template-columns:1fr}.viewpane canvas,.viewpane #plot,.viewpane #scene{height:350px;flex:auto}.viewhead{flex-wrap:wrap}}
+
+/* Smaller, non-stretched viewports; retain independent zoom and reset. */
+.displays{flex:0 0 auto;align-items:start}
+.viewpane{height:clamp(285px,43vh,410px)}
+.viewpane canvas,.viewpane #plot,.viewpane #scene{height:auto;flex:1 1 auto;min-height:230px}
+.workspace{justify-content:flex-start}
+@media(max-width:760px){.viewpane{height:340px}.viewpane canvas,.viewpane #plot,.viewpane #scene{height:auto;min-height:230px;flex:1 1 auto}}
+
+/* Wide-screen workspace with comfortably sized controls and no desktop scrolling. */
+@media(min-width:761px){
+  html,body{height:100%;overflow:hidden}
+  .workspace{width:100%;height:100dvh;padding:10px 16px 9px;gap:9px;justify-content:initial}
+  .topbar{min-height:29px}
+  .topbar strong{font-size:19px}
+  .topbar .subhead{font-size:13px}
+  .topbar .status{font-size:12px}
+  .toolbox{padding:9px 13px;gap:6px;border-radius:9px}
+  .toolrow{min-height:43px;gap:17px}
+  .toolrow+.toolrow{padding-top:7px}
+  .toolrow .buttons{gap:7px}
+  button,.toolrow button,.toolrow .buttons button{font-size:13px;line-height:1.2;padding:8px 12px;border-radius:6px}
+  .control.compact label{font-size:13px;margin-bottom:5px;line-height:1.2}
+  .control.compact input{height:20px}
+  .playrow .compact{max-width:300px}
+  .displays{flex:1 1 auto;min-height:0;align-items:stretch;gap:14px}
+  .viewpane{height:auto;min-height:0;padding:10px;display:flex;flex-direction:column}
+  .viewhead{min-height:28px}
+  .viewhead h2{font-size:16px}
+  .viewhead .legend{font-size:12px;gap:13px}
+  .viewpane canvas,.viewpane #plot,.viewpane #scene{min-height:0;height:100%;flex:1 1 auto}
+  .help{font-size:12px;min-height:20px}
+}
+@media(min-width:761px) and (max-width:1180px){
+ .toolrow{gap:8px}
+ button,.toolrow button,.toolrow .buttons button{font-size:12px;padding:7px 8px}
+ .control.compact label{font-size:12px}
+ .viewhead .legend{font-size:11px;gap:7px}
+}
+@media(min-width:761px) and (max-height:750px){
+ .workspace{gap:5px;padding:5px 12px}
+ .toolbox{gap:3px;padding:5px 10px}
+ .toolrow{min-height:34px}
+ .toolrow+.toolrow{padding-top:3px}
+ button,.toolrow button,.toolrow .buttons button{padding:5px 8px}
+ .control.compact label{margin-bottom:2px}
+}
+@media(min-width:761px){.toolrow.tonerow{min-height:37px}.tonerow .compact label{margin-bottom:2px}.toolrow.playrow .buttons button{padding:6px 8px}.viewhead .legend{gap:8px;font-size:11px}}
+@media(min-width:761px) and (max-height:850px){.workspace{gap:5px;padding-top:5px;padding-bottom:5px}.toolbox{gap:3px;padding:5px 9px}.toolrow{min-height:32px}.toolrow+.toolrow{padding-top:3px}.toolrow.tonerow{min-height:30px}.control.compact label{margin-bottom:2px}button,.toolrow button,.toolrow .buttons button{padding:5px 7px;font-size:11px}.viewhead .legend{font-size:10px;gap:6px}}
+@media(max-width:1180px){.viewhead{flex-wrap:wrap;min-height:34px}.viewhead .legend{font-size:10px}}
+
+/* Four sound sources arranged as a single horizontal row. */
+.sources-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-width:0}
+.source-card{min-width:0;border:1px solid #344c62;border-top:3px solid var(--source);border-radius:7px;background:#0f2031;padding:8px 12px;display:flex;flex-direction:column;gap:5px}
+.source-title{color:var(--source);font-weight:800;font-size:14px;line-height:1.2;display:flex;justify-content:space-between;gap:6px}
+.source-title span{font-size:11px;font-weight:500;color:#9eb4ca}
+.source-card .control.compact{flex:0 0 auto}
+.source-card .control.compact label{margin-bottom:3px}
+.settingsrow{padding-top:6px}
+/* Viewports are deliberately smaller; the independent zoom/reset tools remain. */
+@media(min-width:761px){
+ .workspace{justify-content:flex-start}
+ .displays{flex:0 0 auto;align-items:stretch;height:clamp(265px,39vh,415px)}
+ .viewpane{height:100%;min-height:0}
+ .viewpane canvas,.viewpane #plot,.viewpane #scene{height:100%;min-height:0;flex:1 1 auto}
+ .toolbox{gap:7px}
+ .source-card .control.compact input{height:18px}
+}
+@media(max-width:1100px) and (min-width:761px){
+ .source-card{padding:6px 8px}.source-title{font-size:12px}.source-title span{display:none}
+ .playrow{flex-wrap:wrap}.playrow .buttons{flex:1 1 100%}
+ .displays{height:clamp(240px,34vh,365px)}
+}
+@media(max-width:760px){.sources-row{grid-template-columns:repeat(2,minmax(0,1fr))}.displays{height:auto}.viewpane{height:330px}}
+@media(max-width:480px){.sources-row{grid-template-columns:1fr}}
+
+/* Mono workspace: common controls across the top, four independent sources stacked at left. */
+.speed-presets{display:flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;white-space:nowrap}
+.speed-label{font-size:11px;color:#c8e4fa;font-weight:700;margin-right:3px}
+.speed-presets .rpm-btn{padding:7px 8px;font-size:11px;font-weight:750;line-height:1.15;min-height:30px}
+.speed-presets .rpm-btn.active{background:#1776a8;color:#fff;border-color:#7bd3ff}
+@media(max-width:1150px){.speed-presets{flex-wrap:wrap;justify-content:flex-start}.speed-label{width:100%}.speed-presets .rpm-btn{padding:5px 6px;font-size:10px}}
+
+.workspace{gap:7px}
+.toolbox{flex:0 0 auto;padding:8px 11px;gap:5px}
+.global-title,.sidebar-heading{font-weight:800;letter-spacing:.07em;color:#c8e4fa;font-size:12px}
+.global-title span{letter-spacing:0;font-size:11px;font-weight:500;color:#9fb7cf;margin-left:9px}
+.globalrow{gap:12px;min-height:43px}
+.globalrow .compact{flex:1 1 0;min-width:80px}
+.globalrow button{flex:0 0 auto}
+.lower-layout{display:grid;grid-template-columns:clamp(260px,22vw,335px) minmax(0,1fr);gap:10px;flex:1 1 auto;min-height:0}
+.source-sidebar{display:flex;flex-direction:column;gap:9px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:auto;min-height:0}
+.sidebar-heading small{display:block;font-size:11px;line-height:1.4;letter-spacing:0;font-weight:500;color:#a4b7cd;margin:3px 0 2px}
+.source-card{flex:0 0 auto;gap:8px;padding:10px 12px}
+.source-title{align-items:center;font-size:15px}
+.source-title .source-switch{font-size:12px;font-weight:800;padding:6px 14px;border-radius:5px;background:#394351;border-color:#677789;color:#c5d0da}
+.source-title .source-switch.on{background:#176b52;border-color:#4dd8aa;color:#fff}
+.source-card .control.compact label{font-size:12px}
+.source-card .control.compact input{height:20px}
+.sidebar-note{font-size:11px;line-height:1.45;color:#a4b7cd;margin-top:3px}
+.lower-layout .displays{height:100%;min-height:0;flex:1 1 auto;align-items:stretch;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.lower-layout .viewpane{height:100%;min-height:0}
+.lower-layout .viewpane canvas{height:100%;min-height:0;flex:1 1 auto}
+.viewhead{flex-wrap:wrap;align-content:center;min-height:35px}
+.viewhead .legend{font-size:10px;gap:6px}
+@media(min-width:761px) and (max-height:800px){.source-sidebar{gap:5px;padding:6px}.source-card{padding:6px 10px;gap:4px}.source-title{font-size:13px}.globalrow{min-height:34px}.toolbox{padding:5px 9px}}
+@media(max-width:1050px) and (min-width:761px){.lower-layout{grid-template-columns:245px minmax(0,1fr)}.globalrow{gap:6px}.globalrow button{padding:6px}.globalrow .compact label{font-size:11px}.viewhead .legend{font-size:9px}}
+@media(max-width:760px){html,body{overflow:auto}.workspace{height:auto;overflow:visible}.lower-layout{grid-template-columns:1fr}.source-sidebar{overflow:visible}.lower-layout .displays{grid-template-columns:1fr}.lower-layout .viewpane{height:330px}.globalrow{flex-wrap:wrap}.globalrow .compact{flex:1 1 135px}}
+
+/* Continuous speed slider with directly aligned preset buttons and tick marks. */
+.speed-control{flex:2 1 430px;min-width:330px;max-width:620px;padding:2px 6px 0}
+.speed-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:750;color:#d8ecff;margin-bottom:2px}
+.speed-head output{color:#7cd1ff;font-variant-numeric:tabular-nums}
+.speed-ruler{position:relative;height:51px;margin:0 10px}
+.speed-ruler input[type=range]{position:absolute;left:0;right:0;bottom:0;width:100%;margin:0;z-index:2;cursor:pointer}
+.speed-mark{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;z-index:3;pointer-events:none}
+.speed-mark button{pointer-events:auto;white-space:nowrap;font-size:10px;font-weight:750;padding:3px 5px;min-height:23px;line-height:1.1;border-radius:5px}
+.speed-mark button.active{background:#1674a5;color:white;border-color:#7bd3ff}
+.speed-mark::after{content:'';width:2px;height:8px;background:#ffae59;box-shadow:0 0 3px #1d3d57}
+.speed-mark.first{transform:translateX(-5%)}
+.speed-mark.last{transform:translateX(-95%)}
+.speed-mark[data-pos="20"] button{margin-left:5px}
+.speed-mark[data-pos="40"] button{margin-right:5px}
+@media(max-width:1150px){.speed-control{flex-basis:100%;max-width:none}.speed-mark button{font-size:10px}}
+
+.stylus-readout .mag-warning{color:#ff4a4a;font-weight:900;white-space:nowrap}
+/* Lateral ripple display enhancement (visual only; constant groove cross-section). */
+.ripple-controls{display:flex;align-items:center;gap:3px;flex-wrap:wrap;font-size:10px;color:#4a6c87}
+.ripple-controls .mag-label{font-weight:900;color:#e11d28;font-size:12px;white-space:nowrap}
+.ripple-controls button{font-size:10px!important;padding:3px 5px!important;min-width:28px}
+.ripple-controls button.active{background:#176d95;border-color:#49bff3}
+.scene-ripple-note{font-weight:900!important;color:#d71920!important;border:1px solid #e67b7b;position:absolute;left:9px;bottom:9px;top:auto;background:#e8eff4dd;color:#23435a;font-size:11px;padding:4px 6px;border-radius:5px;pointer-events:none;z-index:1}
+/* True-scale explanatory inset: stage 1 record, stage 2 top-view grooves, stage 3 existing 3D. */
+.scene-wrap{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;border-radius:5px}
+.viewpane .scene-wrap #scene{position:absolute;inset:0;width:100%;height:100%;min-height:0;display:block}
+.scale-inset{position:absolute;right:9px;bottom:9px;width:292px;background:rgba(9,22,35,.94);border:1px solid #de8b42;border-radius:9px;padding:7px 9px 6px;box-shadow:0 3px 18px #09152299;pointer-events:none;color:#e9f1fb;font-size:10px;z-index:1}
+.scale-caption{font-size:10px;font-weight:800;letter-spacing:.05em;color:#ffa450;display:flex;justify-content:space-between;gap:8px}
+.scale-caption span{color:#ffbc75;letter-spacing:0;font-size:10px}
+.scale-steps{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:3px}
+.scale-step{text-align:center;font-weight:700;line-height:1.15}
+.scale-step canvas{width:117px!important;height:104px!important;min-height:0!important;flex:none!important;background:#101e2b;border:1px solid #36516a;border-radius:5px;display:block}
+.scale-step small{display:block;font-weight:500;color:#b5c6d8;margin-top:2px;font-size:9px}
+.scale-arrow{color:#ff9d42;font-size:18px;margin-top:-15px}
+.scale-foot{margin-top:5px;text-align:center;color:#ffba78;font-size:10px;line-height:1.25}
+.scale-note{color:#a9bbcc;font-size:9px}
+@media(max-width:1200px){.scale-inset{width:246px;padding:5px}.scale-step canvas{width:97px!important;height:88px!important}.scale-arrow{font-size:14px}}
+@media(max-width:760px){.scale-inset{width:234px}.scale-step canvas{width:92px!important;height:82px!important}}
+
+.source-card select{width:100%;padding:5px 7px;background:#172d40;color:#e8f3fc;border:1px solid #52708a;border-radius:5px;font-size:12px}
+.source-card select:focus-visible{outline:2px solid #e8b95c;outline-offset:2px}
+.recording-loader{padding:7px;border:1px solid #526f8d;border-radius:7px;background:#0c1b2c;margin:5px 0 8px}.recording-loader a{color:#89cbff}.recording-loader[hidden]{display:none}
+/* Stereo lab — keep the existing mono controls untouched. */
+.mode-toggle{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.mode-toggle button{padding:6px 11px;font-size:12px}
+.stereo-only{display:none!important}
+body.stereo-mode .stereo-only{display:block!important}
+body.stereo-mode .mono-only{display:none!important}
+body.stereo-mode .stereo-only.stereo-card{display:flex!important}
+.stereo-card{flex-direction:column;gap:9px}
+.stereo-card .source-title{color:#b6e9ff}
+.stereo-card .small{font-size:11px;line-height:1.35;margin:0}
+.stereo-card input[type=file]{width:100%;font-size:11px}
+.stereo-card .stereo-mode-button{padding:6px;font-size:11px}
+.stereo-card .channel-title{display:flex;align-items:center;justify-content:space-between;font-weight:700}
+.stereo-card .channel-title button{padding:3px 8px;font-size:11px}
+.stereo-card .stereo-file-info{font-size:11px;color:#b7d3e7;line-height:1.35;overflow-wrap:anywhere}
+.stereo-wall-legend{font-size:10px;color:#d3e3f3;line-height:1.3}
+
+/* Stereo end-on stylus: deliberately larger than the supporting 3D view. */
+.stylus-panel{min-height:0;background:#101e2b;border:1px solid #39556a;border-radius:7px;overflow:hidden;flex-direction:column;gap:0;margin-top:7px}
+body.stereo-mode .stylus-panel{display:flex!important;flex:1 1 53%;}
+body.stereo-mode .scene-wrap{flex:0 0 43%;min-height:0}
+.scale-inset{display:none!important} /* Hide the small two-stage magnification inset in both modes; keep canvases for existing render logic. */
+.stylus-head{display:flex;align-items:center;justify-content:space-between;gap:6px;color:#f1f5f8;font-size:11px;padding:5px 8px 1px}
+.stylus-head span{font-size:9px;color:#b7cfe1}
+.stylus-panel canvas{display:block!important;width:100%!important;height:100%!important;flex:1 1 auto!important;min-height:0!important;background:#101e2b;border-radius:0!important}
+.stylus-readout{font-size:10px;color:#c2d6e6;padding:2px 8px 5px;white-space:nowrap;text-align:center}
+
+/* Mk5-style picture-in-picture stereo cross-section, now draggable across screen. */
+body.stereo-mode .scene-wrap{flex:1 1 auto;min-height:0}
+.stylus-panel{position:absolute;top:10px;right:10px;bottom:auto;width:min(60%,360px);height:clamp(510px,97%,585px);min-height:0;margin:0;z-index:5;border:1px solid #8da3b4;border-radius:9px;background:rgba(16,30,43,.96);box-shadow:0 3px 14px #09152266;pointer-events:auto}
+.stylus-panel{display:flex!important;flex:none}
+.stylus-head{padding:7px 8px 5px;display:block;line-height:1.2;cursor:grab;touch-action:none;user-select:none;background:#1c3143;border-bottom:1px solid #39556a}
+.stylus-head strong{font-size:calc(11px * var(--inset-text-scale, 1))}
+.stylus-head:active{cursor:grabbing}
+.stylus-panel.floating{position:fixed!important;right:auto!important;bottom:auto!important;z-index:1000!important}
+/* Bottom-right grab handle; the floating panel resizes without changing the main view. */
+.stylus-panel .resize-corner{position:absolute;right:1px;bottom:1px;width:23px;height:23px;z-index:8;cursor:nwse-resize;touch-action:none;user-select:none;border-bottom-right-radius:7px;background:linear-gradient(135deg,transparent 48%,#f3bd75 50%,#f3bd75 54%,transparent 56%) 6px 6px/12px 12px no-repeat,linear-gradient(135deg,transparent 48%,#f3bd75 50%,#f3bd75 54%,transparent 56%) 11px 11px/12px 12px no-repeat;background-color:rgba(20,41,57,.7)}
+.stylus-panel .resize-corner:hover{background-color:rgba(71,109,130,.9)}
+.stylus-panel .drag-hint{font-size:9px;color:#f3bd75;float:right;font-weight:600}
+.stylus-head span{display:block;font-size:calc(9px * var(--inset-text-scale, 1));margin-top:2px}
+.stylus-panel canvas{min-height:0!important;flex:1 1 auto!important;height:0!important}
+.stylus-readout{font-size:calc(9px * var(--inset-text-scale, 1));white-space:normal;line-height:1.2;padding:3px 7px 6px}
+@media(max-width:760px){.stylus-panel{width:min(74%,330px);height:285px;right:6px;top:6px}}
+.fine-position{min-width:210px}
+.fine-position-row{display:flex;gap:3px;margin-top:4px}
+.fine-position-row .nudge-btn{flex:1;min-width:0;padding:3px 3px;font-size:10px;line-height:1.25;border:1px solid #53677c;background:#233748;color:#eaf4fa;border-radius:4px;cursor:pointer}
+.fine-position-row .nudge-btn:hover{background:#36536b;border-color:#9ac6dc}
+.fine-position-row .nudge-btn:active{background:#486f89}
+.inspection-speed{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px;font-size:10px;color:#b9d3e5}
+.inspection-speed button{font-size:10px;padding:4px 7px;border:1px solid #4b7793;border-radius:5px;background:#203e55;color:#e7f5ff;cursor:pointer}
+.inspection-speed button.active{background:#1674a5;border-color:#7bd3ff;color:white}
+.inspection-note{opacity:.78}
+#plot{cursor:grab;touch-action:pan-y;user-select:none}
+#plot.scrubbing{cursor:grabbing;touch-action:none}
+.scrub-hint{font-size:10px;font-weight:500;color:#7fbad8;margin-left:7px;white-space:nowrap}
+#scene{cursor:grab;touch-action:none}
+#scene.orbit-dragging{cursor:grabbing}
+.orbit-option{font-size:10px;color:#a8cbe1;white-space:nowrap;display:flex;align-items:center;gap:3px;cursor:pointer}
+.orbit-option input{margin:0;accent-color:#5ac4ef}
+
+/* Stereo balance swingometer: short-window RMS, not instantaneous polarity. */
+.stereo-bias{background:#0d2234;border:1px solid #41647e;border-radius:7px;padding:9px 10px 10px;margin-top:1px}
+.stereo-bias-title{font-size:12px;font-weight:800;color:#e5f2fd;margin-bottom:5px;display:flex;justify-content:space-between;gap:5px}
+.stereo-bias-title small{font-size:10px;color:#91b5ce;font-weight:500}
+.stereo-bias-labels{display:flex;justify-content:space-between;font-size:11px;font-weight:750;margin:3px 0 5px}
+.stereo-bias-track{position:relative;height:19px;border-radius:10px;border:1px solid #507189;background:linear-gradient(90deg,#1c6896 0%,#295477 28%,#314558 50%,#806040 72%,#bc7c34 100%);box-shadow:inset 0 1px 4px #0008}
+.stereo-bias-track:before{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#c4d3dc88}
+.stereo-bias-needle{position:absolute;left:50%;top:-6px;height:29px;width:3px;border-radius:3px;background:#f7f8fb;box-shadow:0 0 0 1px #172736,0 0 7px #fff9;transform:translateX(-50%);transition:left 85ms linear}
+.stereo-bias-readout{text-align:center;font-size:11px;color:#e4f1fc;margin-top:7px;font-variant-numeric:tabular-nums;min-height:14px}
+.stereo-bias-note{font-size:10px;line-height:1.35;color:#9db9ce;margin-top:5px}
+.relief-toggle{white-space:nowrap;font-size:11px;cursor:pointer}.relief-toggle input{accent-color:#4fa6e2;vertical-align:middle}
+.relief-tuning{position:absolute;right:9px;top:9px;z-index:3;width:150px;padding:8px 10px 7px;border:1px solid #a4bccb;border-radius:6px;background:rgba(235,243,249,.92);box-shadow:0 1px 5px #1b385226;font-size:10px;color:#29475d;display:grid;gap:3px}
+.relief-tuning label{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:650}
+.relief-tuning output{font-variant-numeric:tabular-nums;color:#174d72;font-weight:800}
+.relief-tuning input[type=range]{width:100%;height:12px;margin:0 0 3px;accent-color:#326b92;cursor:pointer}
+/* Always-visible stereo cartridge outputs, independent of canvas labels. */
+.stylus-voltage-strip{display:flex;flex:0 0 auto;gap:5px;padding:5px 7px 4px;background:#182d40;border-top:1px solid #3b5368;border-bottom:1px solid #3b5368}
+.stylus-voltage-cell{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:5px;padding:4px 2px;background:#102132}
+.stylus-voltage-cell .voltage-axis{font-size:calc(10px * var(--inset-text-scale,1));font-weight:800;letter-spacing:.3px}
+.stylus-voltage-cell strong{font-size:calc(14px * var(--inset-text-scale,1));font-variant-numeric:tabular-nums;white-space:nowrap}
+.stylus-voltage-cell.left{color:#65d3ff}
+.stylus-voltage-cell.right{color:#ffc579}
+body:not(.stereo-mode) .stylus-voltage-strip{display:none}
+.neighbour-controls{position:absolute;left:9px;top:9px;z-index:4;width:170px;padding:8px 10px;background:rgba(235,243,249,.95);border:1px solid #9fb8c8;border-radius:6px;box-shadow:0 1px 5px #1b385226;color:#29475d;font-size:10px;display:grid;gap:5px}
+.neighbour-controls label{display:flex;align-items:center;justify-content:space-between;gap:5px;font-weight:700}
+.neighbour-controls select{max-width:102px;font-size:10px;color:#243c4f;background:white;border:1px solid #a7b9c9;border-radius:3px}
+.neighbour-controls input{width:100%;height:12px;margin:0;accent-color:#326b92}
+.neighbour-controls output{font-variant-numeric:tabular-nums}
+.neighbour-controls small{font-size:9px;line-height:1.25;color:#49697c}
+.groove-clearance{font-size:10px;font-weight:800;border-radius:3px;padding:3px 5px;background:#d7ebdc;color:#245d36}
+.groove-clearance.warning{background:#ffdddd;color:#9e2525}
+.orbit-mode-label{display:inline-block;min-width:27px;text-align:center;font-weight:850;font-size:10px;padding:2px 5px;margin-left:3px;background:#dae7ee;color:#37566b;border-radius:3px}
+.orbit-mode-label.on{background:#2a7498;color:white}
+
+/* Group the calculated channel voltages and their geometric components
+   in one distinct, bordered inset, independent of the groove canvas. */
+.stylus-voltage-box{flex:0 0 auto;margin:4px 7px 3px;padding:5px 6px 4px;border:1px solid #66839a;border-radius:6px;background:rgba(28,52,70,.97);box-shadow:inset 0 0 0 1px #142d40}
+.voltage-box-title{font-size:calc(10px * var(--inset-text-scale,1));font-weight:850;color:#f3f8ff;letter-spacing:.15px;line-height:1.2;margin:0 1px 4px}
+.voltage-box-title span{font-size:calc(8px * var(--inset-text-scale,1));font-weight:450;color:#bbd0df;letter-spacing:0}
+.stylus-voltage-box .stylus-voltage-strip{background:transparent;border:0;padding:0 0 3px;gap:6px}
+.stylus-voltage-box .stylus-voltage-cell{border:1px solid #38536b;padding:4px 2px}
+.voltage-components{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;color:#d6e5f1;font-size:calc(9px * var(--inset-text-scale,1));padding:2px 0}
+.voltage-components b{font-variant-numeric:tabular-nums;font-weight:700}
+.voltage-box-foot{border-top:1px solid #456076;margin-top:2px;padding-top:3px;color:#c4d8e7;text-align:center;font-size:calc(8px * var(--inset-text-scale,1));line-height:1.25}
+.voltage-box-foot span{color:#9fbacc}
+/* Cartridge still has two active channels when playing a mono groove. */
+.stylus-voltage-box{display:block}
+.voltage-trace-wrap{margin-top:5px;padding:4px 5px 2px;border:1px solid #38536b;border-radius:4px;background:#0e2030}
+.voltage-trace-key{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:calc(9px * var(--inset-text-scale,1));color:#d6e5f1;margin-bottom:2px}
+.voltage-trace-key .trace-left{color:#65d3ff;font-weight:800}
+.voltage-trace-key .trace-right{color:#ffc579;font-weight:800}
+.voltage-trace-key .trace-hint{color:#c7d8e4}
+#stylusVoltageTraces{display:block;width:100%;height:55px!important;min-height:55px!important;flex:0 0 55px!important;border-radius:2px}
+.voltage-mode-note{text-align:center;font-size:calc(9px * var(--inset-text-scale,1));color:#a9d4f2;line-height:1.25;margin-top:3px}
+
+/* Preserve a usable cross-section even when the floating window is compact.
+   Lower readouts scroll rather than crushing the groove into a thin strip. */
+.stylus-panel{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#607e96 #142b3e}
+.stylus-panel .stylus-head{position:sticky;top:0;z-index:6}
+.stylus-panel #stylusEnd{flex:0 0 165px!important;height:165px!important;min-height:165px!important}
+/* End-on physical position versus instantaneous motion: independent quantities. */
+.motion-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px 4px;background:#132a3b;border-top:1px solid #3b5368;color:#f1f7fc;font-size:calc(10px * var(--inset-text-scale,1))}
+.motion-controls label{cursor:pointer;font-weight:750;white-space:nowrap}
+.motion-controls input{accent-color:#f5f8ff;vertical-align:middle}
+.motion-controls small{color:#bbd3e4;font-size:calc(9px * var(--inset-text-scale,1));text-align:right}
+.motion-state{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px 8px;background:#122536;border-bottom:1px solid #345169;font-variant-numeric:tabular-nums}
+.motion-state>div{border:1px solid #355168;border-radius:4px;padding:5px 6px;min-width:0}
+.motion-state b{display:block;font-size:calc(10px * var(--inset-text-scale,1));margin-bottom:3px}
+.motion-state span{display:block;font-size:calc(10px * var(--inset-text-scale,1));line-height:1.4;color:#d8e7f1}
+.motion-state .pos b{color:#f6a9cd}.motion-state .vel b{color:#f7f9fc}
+/* Vector and voltage readouts share the selected measurement reference. */
+.measurement-mode{padding:7px 9px 6px;background:#163247;border-bottom:1px solid #5a839e;color:#e7f4ff;font-size:calc(10px * var(--inset-text-scale,1))}
+.measurement-mode label{display:flex;align-items:center;gap:7px;font-weight:800;cursor:pointer}
+.measurement-mode input{accent-color:#67c7ff;width:15px;height:15px;flex:0 0 auto}
+.measurement-mode .measurement-banner{margin-top:5px;font-size:calc(10px * var(--inset-text-scale,1));font-weight:850;color:#a7e4ff;letter-spacing:.25px}
+.measurement-mode .measurement-detail{font-size:calc(9px * var(--inset-text-scale,1));line-height:1.35;color:#bed7e9;margin-top:2px}
+
+.velocity-vector-box{border:1px solid #45617a;background:#0b1c2a;border-radius:5px;margin:4px 0 5px;padding:5px}
+.vector-heading{color:#f2f7fc;font-size:calc(10px * var(--inset-text-scale,1));font-weight:800;letter-spacing:.2px;display:flex;justify-content:space-between;gap:5px;align-items:center}
+.vector-heading span{font-weight:400;color:#a9bfd0;font-size:calc(8px * var(--inset-text-scale,1));letter-spacing:0}
+#stylusVectors{display:block;width:100%;height:150px!important;min-height:150px!important;flex:0 0 150px!important;background:#0b1c2a}
+.vector-legend{display:flex;justify-content:space-evenly;flex-wrap:wrap;gap:2px 5px;font-size:calc(9px * var(--inset-text-scale,1));font-weight:700}
+.vector-pink{color:#f28bbb}.vector-green{color:#a7e8a1}.vector-white{color:#f1f7fc}.vector-blue{color:#65d3ff}.vector-orange{color:#ffc579}
+.vector-explainer{font-size:calc(9px * var(--inset-text-scale,1));color:#d5e7f4;text-align:center;padding:5px 0 2px;border-bottom:1px solid #29475b}.vector-explainer b{color:#fff}.vector-hint{text-align:center;font-size:calc(9px * var(--inset-text-scale,1));color:#a9c3d6;line-height:1.3;padding-top:3px;min-height:2.6em;box-sizing:border-box;font-variant-numeric:tabular-nums}
+
+/* Independent end-on groove viewport and electrical analysis viewport. */
+.groove-end-window{
+ position:absolute;left:10px;top:10px;right:auto;z-index:6;
+ width:min(46%,310px);height:280px;display:flex;flex-direction:column;
+ border:1px solid #91aab9;border-radius:9px;overflow:hidden;
+ background:#101e2b;box-shadow:0 4px 18px #06121bb8;
+}
+.groove-end-window.floating{position:fixed!important;z-index:1002!important;right:auto!important;bottom:auto!important}
+.groove-end-window .stylus-head{flex:0 0 auto;padding-left:27px}
+.groove-end-window #stylusEnd{display:block!important;flex:1 1 auto!important;min-height:75px!important;height:0!important;width:100%!important;background:#101e2b}
+.groove-window-caption{flex:0 0 auto;font-size:10px;color:#b5d0e1;padding:5px 10px 8px;text-align:center;border-top:1px solid #29475c;line-height:1.25}
+.stylus-panel{top:10px;right:10px;width:min(50%,365px);height:clamp(380px,85%,540px)}
+.stylus-panel .stylus-head{padding-left:27px}
+.stylus-panel .measurement-mode{position:sticky;top:43px;z-index:5;background:#204963;border-bottom:2px solid #78cfff;box-shadow:0 2px 6px #0008}
+.stylus-panel .measurement-mode label{font-size:calc(11px * var(--inset-text-scale,1));color:#fff}
+.stylus-panel .measurement-mode input{width:19px;height:19px}
+.stylus-panel .measurement-banner{font-size:calc(11px * var(--inset-text-scale,1));color:#b7f1ff}
+.stylus-panel .motion-controls{padding-top:7px}
+.stylus-panel .stylus-head,.groove-end-window .stylus-head{min-height:48px;box-sizing:border-box;position:relative;padding-right:8px}
+.stylus-panel .stylus-head strong,.groove-end-window .stylus-head strong{display:block;font-size:calc(11px * var(--inset-text-scale,1));max-width:100%;white-space:nowrap}
+.stylus-panel .stylus-head .drag-hint,.groove-end-window .stylus-head .drag-hint{position:absolute;right:7px;top:24px;float:none;font-size:8px}
+.stylus-panel .stylus-head span,.groove-end-window .stylus-head span{max-width:70%;margin-top:5px}
+.stylus-panel .resize-corner,.groove-end-window .resize-corner{position:absolute;right:1px;bottom:1px;width:25px;height:25px;z-index:12;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 47%,#ffd38d 49%,#ffd38d 53%,transparent 55%) center/16px 16px no-repeat;background-color:rgba(25,49,67,.90)}
+.stylus-panel .resize-corner.top-left,.groove-end-window .resize-corner.top-left{right:auto;bottom:auto;left:1px;top:1px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 47%,#ffd38d 49%,#ffd38d 53%,transparent 55%) center/16px 16px no-repeat;background-color:rgba(25,49,67,.90)}
+.stylus-panel .resize-corner:hover,.groove-end-window .resize-corner:hover{background-color:#55758a}
+@media(max-width:760px){.groove-end-window{width:44%;height:240px}.stylus-panel{width:51%;height:410px}}
+
+/* The entire 3D groove scene is an independent, movable viewport. */
+#groove3dPane.floating-3d{position:fixed!important;z-index:900!important;left:52%;top:35%;width:46%;height:40%;min-width:280px;min-height:210px;box-sizing:border-box;box-shadow:0 9px 30px #000a;border:2px solid #6a96b5;overflow:hidden;}
+#groove3dPane.floating-3d .viewhead{cursor:move;touch-action:none;user-select:none;background:#20384b;border-radius:5px;padding:2px 7px;}
+#groove3dPane.floating-3d .viewhead label,#groove3dPane.floating-3d .viewhead button{cursor:pointer;touch-action:auto;}
+.float-3d-hint{font-size:9px;color:#ffce83;font-weight:700;white-space:nowrap;margin-left:auto;}
+.dock-3d-btn{font-size:10px!important;padding:3px 6px!important;white-space:nowrap;background:#26475d;border:1px solid #7894a7;color:#eaf7ff;border-radius:4px;cursor:pointer;}
+.float3d-grip{display:none;position:absolute;width:24px;height:24px;z-index:40;touch-action:none;user-select:none;background:linear-gradient(135deg,transparent 46%,#f3bd75 49%,#f3bd75 54%,transparent 57%) center/13px 13px no-repeat;background-color:#29465a99;}
+.floating-3d .float3d-grip{display:block;}
+.float3d-top-left{left:0;top:0;cursor:nwse-resize;border-top-left-radius:5px;}
+.float3d-bottom-right{right:0;bottom:0;cursor:nwse-resize;border-bottom-right-radius:5px;}
+/* Keep the waveform on the left while the 3D scene is detached. */
+.displays:has(#groove3dPane.floating-3d)>.viewpane:first-child{flex:0 0 calc(50% - 7px);width:calc(50% - 7px);}
+@media(max-width:760px){.displays:has(#groove3dPane.floating-3d)>.viewpane:first-child{flex:1 1 auto;width:100%}.float-3d-hint{display:none}}
+
+/* Detachable 2D waveform viewport; canvas pointer drag remains reserved for scrubbing. */
+#wave2dPane.floating-2d{position:fixed!important;z-index:905!important;left:4%;top:35%;width:45%;height:40%;min-width:280px;min-height:210px;box-sizing:border-box;box-shadow:0 9px 30px #000a;border:2px solid #6a96b5;overflow:hidden;}
+#wave2dPane.floating-2d .viewhead{cursor:move;touch-action:none;user-select:none;background:#20384b;border-radius:5px;padding:3px 7px;}
+#wave2dPane.floating-2d .viewhead button{cursor:pointer;touch-action:auto;}
+.wave-viewport-controls{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
+.float2d-grip{display:none;position:absolute;width:24px;height:24px;z-index:40;touch-action:none;user-select:none;background:linear-gradient(135deg,transparent 46%,#f3bd75 49%,#f3bd75 54%,transparent 57%) center/13px 13px no-repeat;background-color:#29465a99;}
+.floating-2d .float2d-grip{display:block;}
+.float2d-top-left{left:0;top:0;cursor:nwse-resize;border-top-left-radius:5px;}
+.float2d-bottom-right{right:0;bottom:0;cursor:nwse-resize;border-bottom-right-radius:5px;}
+#wave2dPane.floating-2d #plot{width:100%;height:100%;min-height:0;flex:1 1 auto;touch-action:none;}
+#wave2dPane.floating-2d .legend{max-width:100%;flex-wrap:wrap;}
+@media(max-width:760px){#wave2dPane.floating-2d{width:90%;height:34%;left:5%;top:18%}.wave-viewport-controls .float-3d-hint{display:none}}
+
+/* Keep the voltage unit fixed: an explicit, highlighted engineering exponent
+   prevents a barely noticeable mV/µV/nV unit switch. */
+.voltage-engineering-key{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 10px;margin:0 0 6px;padding:5px 6px;border-radius:4px;background:#122c41;color:#b9d8f0;font-size:calc(10px * var(--inset-text-scale,1));font-weight:800;line-height:1.35}
+.voltage-engineering-key span{color:#e5f0f8;font-weight:500}
+.voltage-engineering-key i{font-style:normal;color:#ffe09b;font-weight:900}
+.eng-mantissa{font-variant-numeric:tabular-nums}
+.eng-exponent{display:inline-block;vertical-align:baseline;border:1px solid #b78a39;background:#5c431f;color:#fff0bc;padding:1px 4px;border-radius:4px;font-size:.88em;font-weight:900;white-space:nowrap}
+.eng-exponent sup,.voltage-engineering-key sup{font-size:.8em;line-height:0}
+.eng-unit{font-weight:750;white-space:nowrap}
+.stylus-voltage-cell strong{font-size:calc(13px * var(--inset-text-scale,1));line-height:1.6}
+.voltage-components b{white-space:nowrap}
+
+
+/* Put the physical displacement coordinates near the top of the cartridge
+   analysis pane, separate from the 45° velocity and electrical readouts. */
+.fixed-speed-reference{margin:5px 8px 4px;padding:6px 8px;background:#183c42;border:1px solid #438d91;border-radius:5px;color:#c7f7ef;font-size:calc(10px * var(--inset-text-scale,1));font-weight:850;line-height:1.4}
+.fixed-speed-reference span{font-size:.9em;font-weight:500;color:#c3d8d8}
+.groove-coordinate-block{margin:4px 8px 5px;padding:7px 8px;background:#172d44;border:1px solid #6484a1;border-radius:6px}
+.coordinate-title{font-size:calc(10px * var(--inset-text-scale,1));font-weight:850;letter-spacing:.2px;color:#e7f3ff;margin-bottom:5px}
+.groove-coordinate-block .stylus-readout{font-size:calc(11px * var(--inset-text-scale,1));text-align:left;line-height:1.55;padding:0;white-space:normal;color:#f0f7ff;font-variant-numeric:tabular-nums}
+.groove-coordinate-block .mag-warning{display:block;font-size:.9em;margin-top:2px}
+
+/* Coordinates belong to the end-on groove viewport, not the electrical analysis. */
+.groove-end-window .groove-coordinate-block{flex:0 0 auto;margin:3px 7px 3px;padding:5px 7px;max-height:42%;overflow:auto}
+.groove-end-window .coordinate-title{margin-bottom:2px}
+.groove-end-window .groove-window-caption{padding:3px 8px 6px}
+
+/* The white-arrow velocity and its visibility control belong with the
+   end-on groove picture, not with the cartridge electrical panel. */
+.groove-end-window .groove-motion-readout{flex:0 0 auto;margin:3px 7px 4px;padding:6px 8px;border:1px solid #7890a9;border-radius:6px;background:#142d42;color:#edf7ff;font-variant-numeric:tabular-nums}
+.groove-motion-title{font-size:calc(10px * var(--inset-text-scale,1));font-weight:850;letter-spacing:.1px;color:#fff;line-height:1.4}
+.groove-motion-title span{font-weight:600;color:#b9d6e8;white-space:nowrap}
+.groove-motion-numbers{margin:3px 0 5px;font-size:calc(12px * var(--inset-text-scale,1));font-weight:800;line-height:1.45;color:#f1f8ff;white-space:normal}
+.groove-motion-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:calc(10px * var(--inset-text-scale,1));color:#d0e5f3;line-height:1.35}
+.groove-motion-toggle input{accent-color:#f3f8ff;flex:0 0 auto}
+.groove-end-window .groove-window-caption{flex:0 0 auto;line-height:1.35}
+
+
+/* End-on viewport is the home of displacement and its visual magnification. */
+.end-on-magnification{margin:5px 8px;padding:7px 8px;background:#172d44;border:1px solid #6484a1;border-radius:6px}
+.end-on-magnification-title{font-weight:850;color:#e7f3ff;font-size:calc(10px * var(--inset-text-scale,1));margin-bottom:5px}
+.end-on-magnification .ripple-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;position:static;transform:none;width:auto;height:auto}
+.end-on-magnification .mag-label{color:#d7e8f7;font-size:calc(11px * var(--inset-text-scale,1))}
+.end-on-magnification .ripple-btn{cursor:pointer}
+.end-on-magnification-help{font-size:calc(10px * var(--inset-text-scale,1));color:#b5cbda;line-height:1.4;margin-top:5px}
+
+/* Make the stereo audio upload control easy to locate. */
+#stereoFile::file-selector-button{background:#ffd23f;color:#111;font-weight:800;border:1px solid #f3ad12;border-radius:4px;padding:5px 10px;cursor:pointer;}
+#stereoFile::file-selector-button:hover{background:#ffe278;color:#080808;}
+</style></head><body><main class="workspace">
+<header class="topbar"><strong>GrooveSim · Mono / Stereo Groove Lab</strong><span class="subhead">Real stereo audio · 45°/45° groove walls · mono mode retained</span><span id="status" class="status">Ready — press Play.</span></header>
+<div class="toolbox" aria-label="Controls affecting the whole simulation">
+  <div class="global-title">COMMON CONTROLS <span>Apply to all four sources and both views</span></div>
+  <div class="toolrow globalrow">
+    <button id="playToggle">▶ Play</button><button id="reset">↺ Restart</button>
+    <div class="control compact fine-position"><label for="position">Position <output id="positionOut">0.0000000 s</output></label>
+<input id="position" type="range" min="0" max="1000" value="120" aria-label="Coarse position adjustment">
+<div class="fine-position-row" aria-label="Fine position adjustment">
+<button type="button" class="nudge-btn" data-nudge="-1" title="Move back 1 millisecond">−1 ms</button>
+<button type="button" class="nudge-btn" data-nudge="-0.05" title="Move back 0.05 milliseconds">−0.05</button>
+<button type="button" class="nudge-btn" data-nudge="0.05" title="Move forward 0.05 milliseconds">+0.05</button>
+<button type="button" class="nudge-btn" data-nudge="1" title="Move forward 1 millisecond">+1 ms</button>
+</div></div>
+    <div class="speed-control" aria-label="Turntable speed">
+      <div class="speed-head"><label for="speed">Playback speed · continuous</label><output id="speedOut">33⅓ rpm · 1×</output></div>
+      <div class="speed-ruler">
+        <div class="speed-mark first" data-pos="0" style="left:0%"><button class="rpm-btn" data-rate="0" aria-pressed="false">0 · Stop</button></div>
+        <div class="speed-mark" data-pos="28" style="left:28%"><button class="rpm-btn" data-rate="0.01" aria-pressed="false">1/100×</button></div>
+        <div class="speed-mark" data-pos="53" style="left:53%"><button class="rpm-btn" data-rate="0.1" aria-pressed="false">1/10×</button></div>
+        <div class="speed-mark" data-pos="78" style="left:78%"><button class="rpm-btn active" data-rate="1" aria-pressed="true">33⅓</button></div>
+        <div class="speed-mark last" data-pos="100" style="left:100%"><button class="rpm-btn" data-rate="1.35" aria-pressed="false">45 rpm</button></div>
+        <input id="speed" type="range" min="0" max="1000" step="0.01" value="124.74" aria-label="Continuously adjustable turntable speed">
+      </div>
+      <div class="inspection-speed"><span>Slow-motion inspection:</span>
+        <button class="rpm-btn" data-rate="0.001" aria-pressed="false">1/1,000×</button>
+        <button class="rpm-btn" data-rate="0.0001" aria-pressed="false">1/10,000×</button>
+        <span class="inspection-note">For following individual peaks and troughs</span>
+      </div>
+    </div>
+    <div class="control compact"><label for="length">Groove length <output id="lengthOut">2.5 mm</output></label><input id="length" type="range" min="0.2" max="15" step="0.1" value="2.5"></div>
+    <div class="control compact"><label for="radius">LP radius <output id="radiusOut">100 mm</output></label><input id="radius" type="range" min="60" max="145" step="5" value="100"></div>
+  </div>
+  <div class="toolrow globalrow">
+    <div class="control compact"><label for="waveTimeZoom">2D horizontal zoom <output id="waveTimeZoomOut">1×</output></label><input id="waveTimeZoom" type="range" min="-2" max="2" step="0.02" value="0"></div>
+    <div class="control compact"><label for="waveHeightZoom">2D vertical zoom <output id="waveHeightZoomOut">1×</output></label><input id="waveHeightZoom" type="range" min="-2" max="2" step="0.01" value="0"></div>
+    <button id="waveZoomReset">Reset 2D</button>
+    <div class="control compact"><label for="zoom">3D zoom <output id="zoomOut">1×</output></label><input id="zoom" type="range" min="0.7" max="3" step="0.1" value="3"></div>
+    <button id="resetView">Reset 3D</button>
+    <div class="mode-toggle" aria-label="Groove encoding"><button id="modeMono" class="active" aria-pressed="true">Mono</button><button id="modeStereo" aria-pressed="false">Stereo · 45/45</button></div>
+    <div class="buttons modebuttons"><button id="viewSeparate" class="active">Separate traces</button><button id="viewOverlay">Overlay</button></div>
+  </div>
+</div>
+<div class="lower-layout">
+  <aside class="source-sidebar" aria-label="Sound sources">
+    <div class="sidebar-heading mono-only">INDIVIDUAL SOURCES <small>Modulation is peak sideways displacement (±µm)</small></div>
+    <div class="sidebar-heading stereo-only">STEREO INPUT <small>Two independent 45° groove-wall signals</small></div>
+    <div class="source-card stereo-card stereo-only" style="--source:#71c7ef">
+      <div class="source-title">Stereo source</div>
+      <button id="stereoDemo" class="stereo-mode-button active">▶ Built-in L / R / Both test</button>
+      <label class="small" for="stereoFile">Or load a genuine stereo recording (WAV, MP3, FLAC, OGG):</label>
+      <input id="stereoFile" type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" />
+      <div id="stereoFileInfo" class="stereo-file-info">Demo ready: 440 Hz in left, then right, then both (6 seconds).</div>
+      <div class="channel-title" style="color:#65d3ff">LEFT wall <button id="leftSwitch" class="source-switch on" aria-pressed="true">ON</button></div>
+      <div class="control compact"><label for="leftLevel">L modulation <output id="leftOut">6 µm</output></label><input id="leftLevel" type="range" min="0" max="20" step="0.5" value="6"></div>
+      <div class="channel-title" style="color:#ffc579">RIGHT wall <button id="rightSwitch" class="source-switch on" aria-pressed="true">ON</button></div>
+      <div class="control compact"><label for="rightLevel">R modulation <output id="rightOut">6 µm</output></label><input id="rightLevel" type="range" min="0" max="20" step="0.5" value="6"></div>
+      <div class="stereo-bias" aria-label="Live left right stereo balance meter">
+        <div class="stereo-bias-title"><span>STEREO BALANCE</span><small>Live · 80 ms RMS</small></div>
+        <div class="stereo-bias-labels"><span style="color:#65d3ff">◀ LEFT</span><span style="color:#d5e1ea">CENTRE</span><span style="color:#ffc579">RIGHT ▶</span></div>
+        <div class="stereo-bias-track" role="meter" id="stereoBiasTrack" aria-label="Stereo energy balance" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="No signal">
+          <div class="stereo-bias-needle" id="stereoBiasNeedle"></div>
+        </div>
+        <div class="stereo-bias-readout" id="stereoBiasReadout" aria-live="off">No signal</div>
+        <div class="stereo-bias-note">Shows which channel is stronger, not the instantaneous groove direction. Follows playback and waveform scrubbing.</div>
+      </div>
+      <div class="stereo-wall-legend">Blue = left channel · amber = right channel.<br>Left and right are reproduced in separate speakers/headphones. For a real stereo file, use headphones to hear the separation.</div>
+    </div>
+    <div class="source-card mono-only" style="--source:#52d5ee">
+      <div class="source-title">Ode to Joy <button class="source-switch on" id="odeSwitch" aria-pressed="true">ON</button></div>
+      <div class="control compact"><label for="odeLevel">Modulation <output id="odeOut">6 µm</output></label><input id="odeLevel" type="range" min="0" max="20" step="0.5" value="6"></div>
+    </div>
+    <div class="source-card mono-only" style="--source:#e8b95c">
+      <div class="source-title">Greensleeves <button class="source-switch on" id="greenSwitch" aria-pressed="true">ON</button></div>
+      <div class="control compact"><label for="greenInstrument">Instrument</label><select id="greenInstrument" aria-label="Greensleeves instrument"><option value="guitar" selected>Acoustic guitar (simulated)</option><option value="synth">Original electronic</option><option value="real">Real guitar recording</option></select></div>
+      <div class="recording-loader" id="recordingLoader" hidden>
+        <div style="font-size:12px;line-height:1.4;margin-bottom:5px">Real performance: <b>Derek K. Miller</b>, “What Child Is This? (Greensleeves)”.</div>
+        <a href="https://www.penmachine.com/podcast/files/penmachine-whatchild-greensleeves-christmas.mp3" target="_blank" rel="noopener">① Download guitar recording (MP3)</a>
+        <label for="recordingFile" style="font-size:12px;margin-top:5px;display:block">② Load that MP3 into GrooveSim:</label>
+        <input id="recordingFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.flac" style="max-width:100%;font-size:12px" />
+        <div id="recordingInfo" style="font-size:11px;color:#b6c9db;margin-top:3px">No recording loaded yet.</div>
+        <a href="https://www.penmachine.com/2008/12/free-christmas-mp3-what-child-is-this" target="_blank" rel="noopener" style="font-size:11px">Artist / licence details (CC BY 2.5 CA)</a>
+      </div>
+      <div class="control compact"><label for="greenLevel">Modulation <output id="greenOut">6 µm</output></label><input id="greenLevel" type="range" min="0" max="20" step="0.5" value="6"></div>
+    </div>
+    <div class="source-card mono-only" style="--source:#8bdb93">
+      <div class="source-title">Tone A <button class="source-switch" id="toneASwitch" aria-pressed="false">OFF</button></div>
+      <div class="control compact"><label for="toneALevel">Modulation <output id="toneAOut">5 µm</output></label><input id="toneALevel" type="range" min="0" max="20" step="0.5" value="5"></div>
+      <div class="control compact"><label for="toneAFreq">Frequency <output id="toneAFreqOut">220</output> Hz</label><input id="toneAFreq" type="range" min="80" max="1200" step="10" value="220"></div>
+    </div>
+    <div class="source-card mono-only" style="--source:#bca3ff">
+      <div class="source-title">Tone B <button class="source-switch" id="toneBSwitch" aria-pressed="false">OFF</button></div>
+      <div class="control compact"><label for="toneBLevel">Modulation <output id="toneBOut">5 µm</output></label><input id="toneBLevel" type="range" min="0" max="20" step="0.5" value="5"></div>
+      <div class="control compact"><label for="toneBFreq">Frequency <output id="toneBFreqOut">660</output> Hz</label><input id="toneBFreq" type="range" min="80" max="1200" step="10" value="660"></div>
+    </div>
+    <div class="sidebar-note mono-only">Each ON/OFF switch independently removes or restores that source in the sound, 2D trace and 3D groove. Its modulation setting is retained.</div>
+  </aside>
+  <div class="split displays">
+    <section class="viewpane floating-2d" id="wave2dPane" aria-label="Movable resizable 2D waveform viewport"><div class="viewhead" id="wave2dHeader"><h2>2D · Sideways waveform <small class="scrub-hint">↔ Drag waveform to scrub recording</small></h2><div class="legend" id="traceLegend"><span class="ode">━ Ode</span><span class="green">━ Greensleeves</span><span style="color:#8bdb93">━ Tone A</span><span style="color:#bca3ff">━ Tone B</span><span class="mix">━ Sum / groove</span></div><div class="wave-viewport-controls"><button type="button" id="dock2D" class="dock-3d-btn" title="Return 2D waveform to its original layout">Dock 2D</button><span class="float-3d-hint">⠿ DRAG HEADER TO MOVE</span></div></div><canvas id="plot" aria-label="Individual mono waveforms and their sum"></canvas><div class="float2d-grip float2d-top-left" title="Resize waveform from top-left" aria-label="Resize waveform from top-left"></div><div class="float2d-grip float2d-bottom-right" title="Resize waveform from bottom-right" aria-label="Resize waveform from bottom-right"></div></section>
+    <section class="viewpane floating-3d" id="groove3dPane" aria-label="Movable resizable 3D groove viewport"><div class="viewhead" id="groove3dHeader"><h2 id="grooveTitle">3D · Mono groove</h2><label class="orbit-option" title="Show or hide the semi-transparent rounded cone and straight cylindrical shaft"><input type="checkbox" id="showStylus" checked> Show conical stylus</label><label class="orbit-option relief-toggle" title="Switch between equal peak/trough curvature lines and peak-emphasised shading"><input type="checkbox" id="peakRelief"> Peak shading</label>
+      <button type="button" id="dock3D" class="dock-3d-btn" title="Return 3D view to the original split layout">Dock 3D</button><span class="float-3d-hint">⠿ DRAG HEADER TO MOVE</span></div><div class="scene-wrap"><div class="neighbour-controls">
+<label for="grooveCount">Grooves <select id="grooveCount"><option value="1">1 (original)</option><option value="3" selected>3 neighbours</option><option value="5">5 neighbours</option></select></label>
+<label for="groovePitch">Centre pitch <output id="groovePitchOut">100 µm</output></label>
+<input type="range" id="groovePitch" min="40" max="300" step="5" value="100">
+<div class="groove-clearance" id="grooveClearance">Checking groove clearance…</div>
+<small>Red bands mark actual overlap, not visual magnification. Neighbours: ±1.8 s at 33⅓ rpm.</small>
+</div><div class="relief-tuning" aria-label="Groove relief line appearance">
+  <label for="reliefThickness">Line width <output id="reliefThicknessOut">0.3 px</output></label>
+  <input type="range" id="reliefThickness" min="0.3" max="3" step="0.1" value="0.3" aria-label="Groove wall line thickness">
+  <label for="reliefDarkness">Line darkness <output id="reliefDarknessOut">100%</output></label>
+  <input type="range" id="reliefDarkness" min="0" max="100" step="1" value="100" aria-label="Groove wall line darkness">
+</div><div class="scene-ripple-note" id="rippleNote">MOVEMENT ×4 — VISUAL ONLY · groove dimensions unchanged</div><canvas id="scene" class="three" aria-label="Rotatable 3D vinyl groove with summed lateral modulation"></canvas>
+        <div class="scale-inset" aria-label="Two-stage magnification from twelve-inch disc to groove">
+          <div class="scale-caption">TWO-STAGE MAGNIFICATION <span>↗ 3D groove</span></div>
+          <div class="scale-steps"><div class="scale-step"><canvas id="discInset" width="124" height="110" aria-label="12 inch record with marked playback location"></canvas><div>① 12″ record</div><small>Ø 304.8 mm</small></div>
+          <div class="scale-arrow">➜</div><div class="scale-step"><canvas id="groovesInset" width="124" height="110" aria-label="Top view of several grooves with highlighted sample"></canvas><div>② Grooves · top</div><small>1 × 1 mm area</small></div></div>
+          <div class="scale-foot">Orange = section in 3D · <span id="insetLength">0.5 mm</span> long<br><span class="scale-note">Orange locator enlarged for visibility</span></div>
+        </div>
+      <div class="groove-end-window" aria-label="Independent movable and resizable groove end-on viewport">
+        <div class="stylus-head"><strong id="endOnTitle">STEREO · END-ON</strong><em class="drag-hint">MOVE · RESIZE</em><span id="endOnLegend"><span style="color:#f28bbb">Pink ↔ lateral</span> · <span style="color:#a7e8a1">Green ↕ vertical</span></span></div>
+        <canvas id="stylusEnd" aria-label="End-on groove: red crosshair shows stylus position; white arrow shows instantaneous velocity"></canvas>
+        <div class="groove-coordinate-block" aria-label="Current stylus displacement coordinates">
+          <div class="coordinate-title">STYLUS POSITION · DISPLACEMENT (µm)</div>
+        <div class="stylus-readout" id="stylusReadout">L 0.0000 µm · R 0.0000 µm · sideways 0.0000 µm · vertical 0.0000 µm <strong class="mag-warning">MOVEMENT ×4 — VISUAL ONLY</strong></div>
+        </div>
+        <div class="end-on-magnification" aria-label="Groove movement display magnification">
+          <div class="end-on-magnification-title">GROOVE MOVEMENT · VISUAL MAGNIFICATION</div>
+          <div class="ripple-controls" aria-label="Visual ripple exaggeration"><span class="mag-label">Movement magnification:</span> <button class="ripple-btn" data-mult="1">1×</button><button class="ripple-btn active" data-mult="4">4×</button><button class="ripple-btn" data-mult="8">8×</button></div>
+          <div class="end-on-magnification-help">Affects end-on and 3D groove drawings only · coordinates, velocity and voltage stay at true values.</div>
+        </div>
+        <div class="groove-motion-readout" aria-label="White arrow velocity readout">
+          <div class="groove-motion-title">WHITE ARROW · INSTANTANEOUS STYLUS VELOCITY <span>at 33⅓ RPM</span></div>
+          <div class="groove-motion-numbers" id="motionVelocity">H — cm/s · V — cm/s</div>
+          <label class="groove-motion-toggle"><input id="showMotionAtTip" type="checkbox" checked> Show white velocity arrow at red crosshair</label>
+        </div>
+        <div class="groove-window-caption">Red crosshair = stylus position · white arrow = direction and speed of movement · matches live velocity vectors</div>
+        <div class="resize-corner top-left" role="separator" aria-label="Resize end-on groove window from top left" title="Resize from top left"></div>
+        <div class="resize-corner" role="separator" aria-label="Resize end-on groove window from bottom right" title="Resize from bottom right"></div>
+      </div>
+      <div class="stylus-panel" aria-label="Movable and resizable cartridge analysis and electrical outputs">
+        <div class="stylus-head"><strong>CARTRIDGE · OUTPUTS</strong><em class="drag-hint">MOVE · RESIZE</em><span>Measurements, 45° vectors and output waveforms</span></div>
+        <div class="fixed-speed-reference">MEASUREMENTS AT 33⅓ RPM <span>· animation speed does not change readings</span></div>
+        <div class="stylus-voltage-box" aria-label="Estimated cartridge output voltages">
+          <div class="voltage-box-title">ESTIMATED CARTRIDGE OUTPUT <span>illustrative · before phono preamp</span></div>
+          <div class="voltage-engineering-key" title="All four readings use millivolts. The highlighted multiplier is a power of ten.">ENGINEERING SCALE · always mV <span>Example: <b>2.500</b> <i>×10<sup>−3</sup></i> mV = 0.0025 mV</span></div>
+          <div class="stylus-voltage-strip">
+            <div class="stylus-voltage-cell left"><span class="voltage-axis">↙ LEFT 45°</span><strong id="stylusLeftVoltage">—</strong></div>
+            <div class="stylus-voltage-cell right"><span class="voltage-axis">RIGHT 45° ↘</span><strong id="stylusRightVoltage">—</strong></div>
+          </div>
+          <div class="voltage-components"><span>↔ H: <b id="stylusHVoltage">—</b></span><span>↕ V: <b id="stylusVVoltage">—</b></span></div>
+          <div class="velocity-vector-box" aria-label="Live stylus velocity and stereo pickup vector projections">
+  <div class="vector-heading">LIVE VELOCITY VECTORS <span>NOT stylus position</span></div>
+  <div class="vector-explainer"><b>Red crosshair = where</b> · <b>white arrow = which way &amp; how fast</b></div>
+  <canvas id="stylusVectors" aria-label="Left: horizontal and vertical stylus velocity vectors with resultant. Right: signed left and right 45-degree cartridge response vectors."></canvas>
+  <div class="vector-legend"><span class="vector-pink">↔ H</span> <span class="vector-green">↕ V</span> <span class="vector-white">↗ Resultant</span> <span class="vector-blue">↙ Left</span> <span class="vector-orange">↘ Right</span></div>
+  <div class="vector-hint" id="vectorHint">Mono: both 45° pickups respond equally to sideways velocity.</div>
+</div>
+<div class="voltage-trace-wrap">
+            <div class="voltage-trace-key"><span class="trace-left">● LEFT</span><span class="trace-hint" id="voltageTraceHeading">Voltages · 33⅓ RPM</span><span class="trace-right">● RIGHT</span></div>
+            <canvas id="stylusVoltageTraces" aria-label="Two time-varying left and right cartridge output voltages"></canvas>
+            <div class="voltage-mode-note" id="voltageModeNote">MONO: L and R coincide · both coils respond to sideways motion</div>
+          </div>
+          <div class="voltage-box-foot">L = H + V &nbsp;·&nbsp; R = H − V <span title="5 mV for 5 cm/s at normal speed; actual output varies by cartridge">· nominal 5 mV / 5 cm/s</span></div>
+        </div>
+
+        <div class="resize-corner top-left" role="separator" aria-label="Resize analysis window from top left" title="Resize from top left"></div>
+        <div class="resize-corner" role="separator" aria-label="Resize analysis window from bottom right" title="Resize from bottom right"></div>
+      </div>
+      </div>
+<div class="float3d-grip float3d-top-left" title="Resize 3D window from top-left" aria-label="Resize 3D window from top-left"></div><div class="float3d-grip float3d-bottom-right" title="Resize 3D window from bottom-right" aria-label="Resize 3D window from bottom-right"></div>
+</section>
+  </div>
+</div>
+<details class="help"><summary>How to use / what the markers mean</summary><p>In Mono mode the pink waveform is the sum of all enabled sources and determines the sideways path of the 3D groove. The draggable picture-in-picture end-on view is available in both Mono and Stereo modes. In Mono it moves only sideways at a constant groove depth; in Stereo a genuine two-channel audio file drives independent 45°/45° walls and the crosshair can move vertically as well. The 2D waveform, 3D groove scene, groove end-on cross-section and cartridge analysis are now four independent floating windows. Select or click any floating window to bring it in front of the others. Drag the 2D header to move its window, resize from either corner, or select Dock 2D to return it to the workspace. Dragging within the 2D plot still scrubs the recording. Drag the 3D pane header to move it (drag the 3D canvas itself to orbit), resize from either corner, or press Dock 3D to return it to the split layout. The other two windows remain independent. Drag either title bar to move its window; resize from either the top-left or bottom-right grip. The groove end-on window shows the stylus-position coordinates and the white-arrow horizontal/vertical velocity readings directly beneath the drawing, along with the arrow visibility control. The separate cartridge analysis window shows 45° vectors and electrical outputs at 33⅓ RPM. Drag left or right directly on the 2D waveform to scrub the recording at the current horizontal zoom, keeping the orange centre marker fixed; playback pauses while scrubbing. Use the 1/1,000× or 1/10,000× inspection speeds to watch individual oscillations; the lateral motion is (L+R)/2 and vertical motion is (L−R)/2. A left-only signal moves the groove diagonally one way, a right-only signal the other, and identical L+R gives pure lateral motion. The orange dot and optional rounded stylus indicate the same groove position. The optional stylus has a straight cylindrical stem and a taller conical nose with no oversized collar. The original red V groove reference remains visible. Its rounded contact tip has a nominal 15.24 µm radius and rides on the groove walls. All dimensions share the groove micrometre scale, but unmeasured assembly dimensions are illustrative. In the cartridge voltage box, both L and R voltages are active in Mono mode: they coincide because V = 0. The blue and amber waveforms show the same output in mono and separate waveforms in stereo. In the stereo stylus inset, the pink guide shows lateral displacement, the green guide shows vertical displacement, and the faint 22 ms history trail shows recent groove-bottom positions (not another groove); neither guide represents a separate groove. Each source has its own modulation in µm, which changes its 2D trace, its contribution to the 3D groove, and its audio loudness; 2D zoom can shrink or enlarge the traces in both directions without affecting the sound or groove. The fine surface grid on the vinyl stays fixed while the groove weaves across it. Drag the 3D view to rotate, scroll over it to zoom.  In mono mode the groove stays 60 µm wide and 30 µm deep; in stereo, independent wall modulations can change the apparent groove width and depth, as a 45/45 cut does. The Movement magnification buttons in the end-on groove window exaggerate the visible groove modulation in both the end-on and 3D drawings (not the sound, actual displacement readings, groove dimensions or cartridge voltages). Use 1× for true displacement; 4× or 8× to see the ripples more clearly. A longer groove length shows more cycles. The end-on crosshair is the groove-bottom tracking point. Its optional white arrow starts at that crosshair and shows the current velocity direction, while the adjacent numerical readouts distinguish displacement (µm) from velocity (cm/s); velocity arrow length is scaled against a short surrounding interval for visibility, not a physical distance. Velocity, estimated voltages, vector arrows and voltage traces always reference 33⅓ RPM, regardless of the slowed inspection playback speed. This does not change stylus position, animation, audio or groove geometry. Show conical stylus toggles the semi-transparent cylinder, shoulder and cone. The rounded diamond tip contacts the 45° groove walls above the groove bottom. The original softer lighting is restored. The stereo groove walls use soft directional surface shading, without an artificial dark valley. Faint independent wall-relief lines are concentrated around sharper bends and omitted on unmodulated walls. Tick Peak shading to emphasise positive crests with denser, darker guides while leaving troughs smoother; untick to restore equal peak-and-trough curvature guides. Use the Line width and Line darkness sliders in the top-right of the 3D view to adjust the relief guides live without changing the groove geometry. They open at minimum width (0.3 px) and maximum darkness (100%). The end-on view also shows illustrative signed left and right cartridge voltages on their corresponding 45° wall axes. Voltages are proportional to groove-wall velocity at 33⅓ RPM, using a nominal 5 mV per 5 cm/s sensitivity; these are not direct measurements of a real cartridge. In stereo mode the blue left wall and amber right wall match the end-on inset; the pink 3D line follows the actual groove bottom; the vertical component is shown in the 2D waveform and end-on inset. Greensleeves has three options: plucked-string simulation, original electronic melody, and a real guitar recording you can download and load locally. The selected PCM waveform is shared by audio, the 2D trace and 3D groove. The real recording is converted to mono and normalised to the selected groove modulation in µm. The recording itself is not bundled: download the MP3 and select it using the file picker. Ode to Joy and tones remain synthesised. Use each source’s ON/OFF switch and modulation slider to hear and see it independently or in combination.</p></details>
+</main><script>
+(()=>{'use strict';const $=id=>document.getElementById(id),SR=22050,TAU=2*Math.PI,NOTE=.36;
+const odeNotes=[329.63,329.63,349.23,392,392,349.23,329.63,293.66,261.63,261.63,293.66,329.63,329.63,293.66,293.66,329.63,329.63,349.23,392,392,349.23,329.63,293.66,261.63,261.63,293.66,329.63,293.66,261.63,261.63];
+const greenNotes=[[440,1],[523.25,1],[587.33,.5],[659.25,1.5],[698.46,.5],[659.25,1],[587.33,.5],[493.88,1],[392,.5],[440,1],[493.88,.5],[523.25,1.5],[440,1],[440,.5],[415.3,.5],[440,1],[493.88,.5],[415.3,1],[329.63,1],[440,1],[523.25,1],[587.33,.5],[659.25,1.5],[698.46,.5],[659.25,1],[587.33,.5],[493.88,1],[392,.5],[440,1],[493.88,.5],[523.25,1.5],[493.88,1],[440,1],[415.3,.5],[440,1],[493.88,.5],[440,1],[440,1]];
+const odeDur=odeNotes.length*NOTE,greenDur=greenNotes.reduce((a,x)=>a+x[1]*.255,0),odePcm=new Float32Array(Math.ceil(odeDur*SR)),greenSynthPcm=new Float32Array(Math.ceil(greenDur*SR));
+let phase=0;for(let i=0;i<odePcm.length;i++){let t=i/SR,n=Math.min(odeNotes.length-1,Math.floor(t/NOTE)),local=t-n*NOTE,env=Math.max(0,Math.min(1,local/.008,(NOTE-local)/.013));phase+=TAU*odeNotes[n]/SR;odePcm[i]=env*(.77*Math.sin(phase)+.18*Math.sin(2*phase)+.05*Math.sin(3*phase))*(.78+.13*Math.sin(n*2.6));}
+phase=0;let n=0,start=0,end=greenNotes[0][1]*.255;for(let i=0;i<greenSynthPcm.length;i++){let t=i/SR;while(t>=end&&n<greenNotes.length-1){start=end;n++;end+=greenNotes[n][1]*.255}let env=Math.max(0,Math.min(1,(t-start)/.018,(end-t)/.045));phase+=TAU*greenNotes[n][0]/SR;greenSynthPcm[i]=env*(.68*Math.sin(phase)+.23*Math.sin(2*phase)+.09*Math.sin(3*phase));}
+// Deterministic plucked-string model: a short pick excitation drives a damped
+// delay-line string (Karplus-Strong). All samples are rendered once, locally;
+// no external recordings, libraries or internet connection are required.
+function renderGuitar(){
+ const out=new Float32Array(greenSynthPcm.length);
+ let seed=123456789;
+ function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1}
+ let cursor=0;
+ for(let noteIndex=0;noteIndex<greenNotes.length;noteIndex++){
+  const [freq,beats]=greenNotes[noteIndex],duration=beats*.255;
+  const frames=Math.min(out.length-cursor,Math.round(duration*SR));
+  const delaySize=Math.max(8,Math.round(SR/freq));
+  const delay=new Float32Array(delaySize);
+  // Pluck position shapes the harmonics; gentle low-pass simulates a fingertip/pick.
+  const pluckPosition=.16+(noteIndex%4)*.025;
+  let prev=0;
+  for(let k=0;k<delaySize;k++){
+   const x=k/delaySize;
+   const shape=(x<pluckPosition?x/pluckPosition:(1-x)/(1-pluckPosition));
+   const excitation=(random()*.55+shape*.65);
+   prev=prev*.32+excitation*.68;
+   delay[k]=prev;
+  }
+  // Remove DC component, which otherwise produces a click when a note starts.
+  let mean=0;for(let k=0;k<delaySize;k++)mean+=delay[k];mean/=delaySize;
+  for(let k=0;k<delaySize;k++)delay[k]-=mean;
+  let pos=0,old=0,body=0;
+  for(let i=0;i<frames;i++){
+   const t=i/SR;
+   const current=delay[pos],next=delay[(pos+1)%delaySize];
+   // Gentle frequency-dependent string damping, with higher partials fading first.
+   const damping=.9964-(freq-330)*.00000045;
+   delay[pos]=(.5*current+.5*next)*damping;
+   pos=(pos+1)%delaySize;
+   body=body*.91+current*.09;
+   const attack=Math.min(1,t/.003);
+   const release=Math.min(1,(duration-t)/.045);
+   const env=Math.max(0,attack*release)*Math.exp(-t*.8);
+   const pick=(i<150?random()*.018*Math.exp(-t*110):0);
+   out[cursor+i]=env*(current*.78+body*.22+pick);
+   old=current;
+  }
+  cursor+=frames;
+ }
+ // Normalise the synthesised instrument to roughly the original melody's peak.
+ let peak=0;for(let i=0;i<out.length;i++)peak=Math.max(peak,Math.abs(out[i]));
+ const scale=peak>0?.85/peak:1;
+ for(let i=0;i<out.length;i++)out[i]*=scale;
+ return out;
+}
+const greenGuitarPcm=renderGuitar();
+let greenPcm=greenGuitarPcm, realGuitarPcm=null;
+// Stereo audio stays stereo throughout: two PCM channels drive two speakers and
+// the independently modulated 45/45 groove walls. No mono downmix.
+let encoding='mono',stereoLeft=null,stereoRight=null,stereoName='Built-in L/R/Both test';
+function stereoTest(){
+ const len=6*SR,L=new Float32Array(len),R=new Float32Array(len);
+ for(let i=0;i<len;i++){
+  const t=i/SR,section=Math.min(2,Math.floor(t/2)),local=t-section*2;
+  const edge=Math.min(1,local/.025,(2-local)/.025);
+  const v=Math.sin(TAU*440*t)*Math.max(0,edge)*.85;
+  if(section===0||section===2)L[i]=v;
+  if(section===1||section===2)R[i]=v;
+ }
+ return [L,R];
+}
+[stereoLeft,stereoRight]=stereoTest();
+function stereoDuration(){return stereoLeft.length/SR}
+function channelLevel(side){return $(side+'Switch').classList.contains('on')? +$(side+'Level').value:0}
+function stereoValues(t){return [channelLevel('left')*sample(stereoLeft,t),channelLevel('right')*sample(stereoRight,t)]}
+// Illustrative moving-magnet cartridge output, derived from each wall's
+// physical velocity, not from displacement or the visual movement multiplier.
+// Readout mode can reference either normal record speed or the selected playback RPM.
+// Reference sensitivity: 5 mV for a 5 cm/s peak wall velocity at 1× speed.
+// Real cartridges vary; no RIAA equalisation or cartridge resonance is modelled.
+const CARTRIDGE_MV_AT_5CMS=5;
+// All electrical readouts use the original recording speed (33⅓ RPM).
+// Slowing playback changes only the inspection animation, not these values.
+function measurementRate(){return 1}
+function updateMeasurementLabel(){} 
+function cartridgeVoltages(t){
+ const dt=1/(SR*2);
+ // A stereo pickup playing mono responds equally in both 45° channels.
+ const [lBefore,rBefore]=encoding==='mono'?[combined(t-dt),combined(t-dt)]:stereoValues(t-dt);
+ const [lAfter,rAfter]=encoding==='mono'?[combined(t+dt),combined(t+dt)]:stereoValues(t+dt);
+ const micronsPerSecondToMv=CARTRIDGE_MV_AT_5CMS/50000;
+ const factor=micronsPerSecondToMv*measurementRate();
+ return [(lAfter-lBefore)/(2*dt)*factor,(rAfter-rBefore)/(2*dt)*factor];
+}
+// Fixed-unit engineering notation: every reading stays in mV, with the
+// exponent restricted to multiples of three (… −9, −6, −3, 0, +3 …).
+// Highlight the exponent so changes of scale cannot be mistaken for a
+// small change in the mantissa.  Never silently switch mV / µV / nV.
+function voltageText(mv){
+ if(!Number.isFinite(mv))return '—';
+ if(mv===0)return '<span class="eng-mantissa">0.000</span> <span class="eng-unit">mV</span>';
+ const a=Math.abs(mv);
+ let exponent=Math.floor(Math.log10(a)/3)*3;
+ let mantissa=mv/Math.pow(10,exponent);
+ // Guard against rounding e.g. 999.9996 -> 1000.000.
+ if(Math.abs(Number(mantissa.toFixed(3)))>=1000){exponent+=3;mantissa/=1000;}
+ const sign=mantissa>=0?'+':'−';
+ const expLabel=exponent===0?'':` <span class="eng-exponent" title="Engineering scale: multiply by ten to the power ${exponent}">×10<sup>${exponent<0?'−':'+'}${Math.abs(exponent)}</sup></span>`;
+ return `<span class="eng-mantissa">${sign}${Math.abs(mantissa).toFixed(3)}</span>${expLabel} <span class="eng-unit">mV</span>`;
+}
+function grooveValues(t){if(encoding==='mono'){const x=combined(t);return [x,0]}const [L,R]=stereoValues(t);return [(L+R)/2,(L-R)/2]}
+// RMS measures each channel's energy over a short 80 ms window, avoiding
+// 440 Hz sine-wave flicker and giving a meaningful left/right balance.
+// The indicator follows the same channel switches and modulation controls as
+// the groove. This is not an instantaneous signed waveform or a phase meter.
+function drawStereoBias(){
+ if(encoding!=='stereo'||!stereoLeft||!stereoRight)return;
+ const at=seekTime(),dur=stereoDuration(),windowSeconds=.080,count=192;
+ let sumL=0,sumR=0;
+ for(let i=0;i<count;i++){
+  const t=Math.max(0,Math.min(dur-1/SR,at+(i/(count-1)-.5)*windowSeconds));
+  const [l,r]=stereoValues(t);
+  sumL+=l*l;sumR+=r*r;
+ }
+ const rmsL=Math.sqrt(sumL/count),rmsR=Math.sqrt(sumR/count),total=rmsL+rmsR;
+ const active=total>1e-6;
+ const balance=active?(rmsR-rmsL)/total:0;
+ const pctL=active?Math.round(rmsL/total*100):0,pctR=active?100-pctL:0;
+ const needle=$('stereoBiasNeedle'),track=$('stereoBiasTrack'),readout=$('stereoBiasReadout');
+ needle.style.left=(50+balance*50).toFixed(2)+'%';
+ needle.style.opacity=active?'1':'.38';
+ track.setAttribute('aria-valuenow',String(Math.round(balance*100)));
+ let label=active?`L ${pctL}%  ·  R ${pctR}%`:'No signal';
+ if(active&&Math.abs(balance)<.03)label+='  ·  Balanced';
+ else if(active)label+=balance<0?'  ◀ Left stronger':'  Right stronger ▶';
+ readout.textContent=label;
+ track.setAttribute('aria-valuetext',label);
+}
+
+
+const toneDuration=1; // 1-second loop is seamless for the selectable integer-Hz tones.
+const toneAPcm=new Float32Array(SR),toneBPcm=new Float32Array(SR);
+function buildTones(){const fa=+$('toneAFreq').value,fb=+$('toneBFreq').value;for(let i=0;i<SR;i++){toneAPcm[i]=Math.sin(TAU*fa*i/SR);toneBPcm[i]=Math.sin(TAU*fb*i/SR)}}
+buildTones();
+// Imported recordings are first anti-aliased/resampled by Web Audio's
+// OfflineAudioContext, then reconstructed between samples with a 24-tap
+// Blackman-windowed sinc kernel. Built-in generated sources keep their
+// original inexpensive interpolation. One sampling function feeds the 2D
+// traces, 3D groove and cartridge-velocity calculations.
+const reconstructedPcm=new WeakSet();
+const SINC_TAPS=24,SINC_PHASES=512;
+const sincTable=Array.from({length:SINC_PHASES+1},(_,phase)=>{
+ const frac=phase/SINC_PHASES,weights=new Float64Array(SINC_TAPS);
+ let sum=0;
+ for(let k=0;k<SINC_TAPS;k++){
+  const distance=k-11-frac;
+  const sinc=Math.abs(distance)<1e-10?1:Math.sin(Math.PI*distance)/(Math.PI*distance);
+  // Symmetric Blackman window centred on the interpolated sample location.
+  const wDistance=Math.abs(distance)/12;
+  const window=wDistance>=1?0:.42+.5*Math.cos(Math.PI*wDistance)+.08*Math.cos(2*Math.PI*wDistance);
+  weights[k]=sinc*window;sum+=weights[k];
+ }
+ for(let k=0;k<SINC_TAPS;k++)weights[k]/=sum;
+ return weights;
+});
+function sample(arr,t){
+ const dur=arr.length/SR,q=((t%dur)+dur)%dur*SR,i=Math.floor(q),f=q-i;
+ if(!reconstructedPcm.has(arr))return arr[i]*(1-f)+arr[(i+1)%arr.length]*f;
+ // Phase interpolation prevents visible staircase artefacts at extreme zoom.
+ const scaled=f*SINC_PHASES,p=Math.min(SINC_PHASES-1,Math.floor(scaled)),mix=scaled-p;
+ const a=sincTable[p],b=sincTable[p+1],n=arr.length;
+ let v=0;
+ for(let k=0;k<SINC_TAPS;k++){
+  let j=i+k-11;
+  if(j<0)j=(j%n+n)%n;
+  else if(j>=n)j%=n;
+  v+=arr[j]*(a[k]+(b[k]-a[k])*mix);
+ }
+ return v;
+}
+async function resampleRecording(decoded){
+ // OfflineAudioContext uses the browser's band-limited sample-rate converter.
+ // Crucially this filters frequencies above 11.025 kHz before decimation.
+ const len=Math.max(2,Math.round(decoded.duration*SR));
+ const offline=new OfflineAudioContext(decoded.numberOfChannels,len,SR);
+ const source=offline.createBufferSource();
+ source.buffer=decoded;source.connect(offline.destination);source.start();
+ const rendered=await offline.startRendering();
+ return rendered;
+}
+let ctxAudio=null,odeSource=null,greenSource=null,toneASource=null,toneBSource=null,odeGain=null,greenGain=null,toneAGain=null,toneBGain=null,masterGain=null,limiter=null,stereoLSource=null,stereoRSource=null,stereoLGain=null,stereoRGain=null,stereoMerger=null,startAt=0,pausedAt=0,playing=false,view='separate',audioStart=0, yaw=.28,elev=.87,drag=null;
+const sourceMap={odeLevel:'odeSwitch',greenLevel:'greenSwitch',toneALevel:'toneASwitch',toneBLevel:'toneBSwitch'};function level(id){return $(sourceMap[id]).classList.contains('on')? +$(id).value : 0}function audioLevel(id){return level(id)/10*.32}function getTime(){return playing&&ctxAudio?pausedAt+Math.max(0,ctxAudio.currentTime-audioStart)*activeRate:pausedAt}let selectedRate=.000771;function rate(){return selectedRate}
+// Continuous speed control with 0, 1/100, 1/10, 33⅓ and 45 rpm markers.
+function sliderToRate(p){
+ if(p<=0)return 0;
+ if(p<=280)return .0001*Math.pow(100,(p-1)/279);
+ if(p<=530)return .01*Math.pow(10,(p-280)/250);
+ if(p<=780)return .1*Math.pow(10,(p-530)/250);
+ return 1+.35*(p-780)/220;
+}
+function rateToSlider(r){
+ if(r<=0)return 0;
+ if(r<=.01)return Math.max(1,1+279*Math.log(r/.0001)/Math.log(100));
+ if(r<=.1)return 280+250*Math.log10(r/.01);
+ if(r<=1)return 530+250*Math.log10(r/.1);
+ return 780+220*(r-1)/.35;
+}
+function speedText(r){
+ if(r===0)return '0 rpm · stopped';
+ const rpm=(r*100/3);
+ return (Math.abs(r-1)<.000001?'33⅓':rpm.toFixed(rpm<.01?6:rpm<1?4:2))+' rpm · '+(r<.01?r.toFixed(6):r<.1?r.toFixed(4):r.toFixed(2))+'×';
+}
+function hZoom(){return Math.pow(10,+$('waveTimeZoom').value)}
+function vZoom(){return Math.pow(10,+$('waveHeightZoom').value)}
+let activeRate=rate();
+function updatePlayButton(){$('playToggle').textContent=playing?'❚❚ Pause':'▶ Play';$('playToggle').classList.toggle('active',playing)}
+async function init(){if(!ctxAudio){ctxAudio=new (window.AudioContext||window.webkitAudioContext)();masterGain=ctxAudio.createGain();limiter=ctxAudio.createDynamicsCompressor();limiter.threshold.value=-9;limiter.knee.value=9;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.15;masterGain.connect(limiter);limiter.connect(ctxAudio.destination);masterGain.gain.value=activeRate;}await ctxAudio.resume();}
+function makeSource(arr,gainValue){const buf=ctxAudio.createBuffer(1,arr.length,SR);buf.copyToChannel(arr,0);const src=ctxAudio.createBufferSource();src.buffer=buf;src.loop=true;src.playbackRate.value=activeRate;const gain=ctxAudio.createGain();gain.gain.value=gainValue;src.connect(gain);gain.connect(masterGain);return {src,gain}}
+function stopSources(){for(const src of [odeSource,greenSource,toneASource,toneBSource,stereoLSource,stereoRSource])if(src){try{src.stop()}catch(e){}src.disconnect()}odeSource=null;greenSource=null;toneASource=null;toneBSource=null;stereoLSource=null;stereoRSource=null;if(stereoMerger){stereoMerger.disconnect();stereoMerger=null}}
+function launchSources(){
+ if(!ctxAudio||activeRate<=0)return;
+ stopSources();
+ if(encoding==='stereo'){
+  const a=makeSource(stereoLeft,0),b=makeSource(stereoRight,0);
+  stereoLSource=a.src;stereoRSource=b.src;stereoLGain=a.gain;stereoRGain=b.gain;
+  // Disconnect the mono master route and send each source to its own output channel.
+  a.gain.disconnect();b.gain.disconnect();
+  stereoMerger=ctxAudio.createChannelMerger(2);
+  a.gain.connect(stereoMerger,0,0);b.gain.connect(stereoMerger,0,1);
+  stereoMerger.connect(masterGain);
+  updateStereoLevels();
+  const at=ctxAudio.currentTime+.012,dur=stereoDuration(),offset=((pausedAt%dur)+dur)%dur;
+  a.src.start(at,offset);b.src.start(at,offset);audioStart=at;return;
+ }
+
+ const a=makeSource(odePcm,audioLevel('odeLevel')),b=makeSource(greenPcm,audioLevel('greenLevel')),ta=makeSource(toneAPcm,audioLevel('toneALevel')),tb=makeSource(toneBPcm,audioLevel('toneBLevel'));
+ odeSource=a.src;greenSource=b.src;toneASource=ta.src;toneBSource=tb.src;odeGain=a.gain;greenGain=b.gain;toneAGain=ta.gain;toneBGain=tb.gain;
+ const at=ctxAudio.currentTime+.012;
+ odeSource.start(at,((pausedAt%odeDur)+odeDur)%odeDur);
+ greenSource.start(at,((pausedAt%(greenPcm.length/SR))+(greenPcm.length/SR))%(greenPcm.length/SR));
+ toneASource.start(at,((pausedAt%toneDuration)+toneDuration)%toneDuration);
+ toneBSource.start(at,((pausedAt%toneDuration)+toneDuration)%toneDuration);
+ audioStart=at;
+}
+async function play(){try{await init();if(playing)return;pausedAt=seekTime();activeRate=rate();playing=true;audioStart=ctxAudio.currentTime;launchSources();updatePlayButton();$('status').textContent=activeRate===0?'Turntable stopped — silent and stationary.':`Playing: ${encoding} audio and groove in sync.`;draw()}catch(e){$('status').textContent='Audio unavailable: '+e.message}}
+function pause(){if(playing){pausedAt=Math.max(0,getTime());playing=false;stopSources();updatePlayButton();$('status').textContent='Paused.';draw()}}
+function reset(){pause();pausedAt=0;preciseSeek=null;$('position').value=0;draw()}
+function updateStereoLevels(){
+ $('leftOut').textContent=$('leftLevel').value+' µm';$('rightOut').textContent=$('rightLevel').value+' µm';
+ if(ctxAudio){const now=ctxAudio.currentTime;for(const [gain,side] of [[stereoLGain,'left'],[stereoRGain,'right']])if(gain)gain.gain.setTargetAtTime(channelLevel(side)/10*.32,now,.02)}
+}
+function updateLevels(){for(const [id,out] of [['odeLevel','odeOut'],['greenLevel','greenOut'],['toneALevel','toneAOut'],['toneBLevel','toneBOut']])$(out).textContent=$(id).value+' µm';
+ if(ctxAudio){const now=ctxAudio.currentTime;for(const [gain,id] of [[odeGain,'odeLevel'],[greenGain,'greenLevel'],[toneAGain,'toneALevel'],[toneBGain,'toneBLevel']])if(gain)gain.gain.setTargetAtTime(audioLevel(id),now,.02)}draw()}
+function toggleSource(button){const el=$(button);el.classList.toggle('on');const on=el.classList.contains('on');el.textContent=on?'ON':'OFF';el.setAttribute('aria-pressed',on?'true':'false');updateLevels()}
+function changeToneFrequency(){buildTones();$('toneAFreqOut').textContent=$('toneAFreq').value;$('toneBFreqOut').textContent=$('toneBFreq').value;
+ if(playing&&ctxAudio&&activeRate>0){pausedAt=getTime();audioStart=ctxAudio.currentTime;launchSources()}
+ draw()}
+
+const canvas=$('plot'),c=canvas.getContext('2d');
+const scene=$('scene'),s=scene.getContext('2d',{alpha:false});
+const TAU2=2*Math.PI, RPM=33+1/3, GROOVE_W=60, GROOVE_D=30;
+function velocity(){return TAU2*(RPM/60)*(+$('radius').value)*1000}
+function winSeconds(){return (+$('length').value*1000)/velocity()}
+function timelineDur(){if(encoding==='stereo')return stereoDuration();return $('greenInstrument').value==='real'&&realGuitarPcm?realGuitarPcm.length/SR:odeDur}
+let preciseSeek=null;
+function seekTime(){return playing?getTime()%timelineDur():(preciseSeek===null?+$('position').value/1000*timelineDur():preciseSeek)}
+function setPrecisePosition(seconds){
+ const duration=timelineDur();
+ preciseSeek=Math.max(0,Math.min(duration,seconds));
+ $('position').value=Math.round(preciseSeek/duration*1000);
+ if(playing){pause();pausedAt=preciseSeek;play()}else{pausedAt=preciseSeek;draw()}
+}
+function combined(t){return level('odeLevel')*sample(odePcm,t)+level('greenLevel')*sample(greenPcm,t)+level('toneALevel')*sample(toneAPcm,t)+level('toneBLevel')*sample(toneBPcm,t)}
+function sizing(el,ctx,minW=100,minH=100){let r=el.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),w=Math.max(minW,Math.round(r.width)),h=Math.max(minH,Math.round(r.height));if(el.width!==Math.round(w*d)||el.height!==Math.round(h*d)){el.width=Math.round(w*d);el.height=Math.round(h*d)}ctx.setTransform(d,0,0,d,0,0);return[w,h]}
+function drawPlot(){if(!c)return;const [w,h]=sizing(canvas,c,320,240);c.fillStyle='#091522';c.fillRect(0,0,w,h);
+const win=winSeconds()/hZoom(),pos=seekTime();
+$('positionOut').textContent=pos.toFixed(7)+' s';
+const left=75,right=w-13,top=22,bottom=h-32,pw=right-left,ph=bottom-top;
+const signals=encoding==='stereo'?[
+ {name:'Left (L)',color:'#65d3ff',f:t=>stereoValues(t)[0]},
+ {name:'Right (R)',color:'#ffc579',f:t=>stereoValues(t)[1]},
+ {name:'Lateral (L+R)/2',color:'#f28bbb',f:t=>grooveValues(t)[0]},
+ {name:'Vertical (L−R)/2',color:'#a7e8a1',f:t=>grooveValues(t)[1]}
+ ]:[
+ {name:'Ode',color:'#52d5ee',f:t=>level('odeLevel')*sample(odePcm,t)},
+ {name:'Greensleeves',color:'#e8b95c',f:t=>level('greenLevel')*sample(greenPcm,t)},
+ {name:'Tone A',color:'#8bdb93',f:t=>level('toneALevel')*sample(toneAPcm,t)},
+ {name:'Tone B',color:'#bca3ff',f:t=>level('toneBLevel')*sample(toneBPcm,t)},
+ {name:'Sum / groove',color:'#f28bbb',f:t=>combined(t)}
+];
+function trace(f,mid,scale,col){c.beginPath();c.strokeStyle=col;c.lineWidth=1.7;for(let x=0;x<=pw;x++){let t=pos+win*(x/pw-.5),y=mid-scale*f(t);if(x===0)c.moveTo(left,y);else c.lineTo(left+x,y)}c.stroke()}
+function grid(mid,label){c.strokeStyle='#30465d';c.lineWidth=1;c.beginPath();c.moveTo(left,mid);c.lineTo(right,mid);c.stroke();c.fillStyle='#a6b8ca';c.font='11px system-ui';c.fillText(label,8,mid-5)}
+let dotY;
+if(view==='separate'){
+ const band=ph/signals.length,scale=band*.31/20*vZoom();
+ signals.forEach((sig,j)=>{const mid=top+band*(j+.5);grid(mid,sig.name);trace(sig.f,mid,scale,sig.color)});
+ dotY=top+band*(signals.length-.5)-grooveValues(pos)[encoding==='stereo'?1:0]*scale;
+}else{
+ const mid=top+ph/2,scale=ph*.17/20*vZoom();grid(mid,'Combined');
+ signals.forEach(sig=>trace(sig.f,mid,scale,sig.color));dotY=mid-grooveValues(pos)[0]*scale;
+}
+for(let k=0;k<=4;k++){let x=left+pw*k/4;c.strokeStyle='#1a344b';c.beginPath();c.moveTo(x,top);c.lineTo(x,bottom);c.stroke();c.fillStyle='#a4b7cd';c.font='11px system-ui';c.textAlign='center';c.fillText(((k/4-.5)*win*1000).toFixed(2)+' ms',x,h-11)}c.textAlign='start';
+c.strokeStyle='#fb8c32';c.lineWidth=1.5;c.setLineDash([4,5]);c.beginPath();c.moveTo((left+right)/2,top);c.lineTo((left+right)/2,bottom);c.stroke();c.setLineDash([]);
+const xMid=(left+right)/2;c.fillStyle='#ff8929';c.beginPath();c.arc(xMid,dotY,5,0,TAU);c.fill();c.strokeStyle='#091522';c.lineWidth=1.5;c.stroke();
+}
+
+function sub(a,b){return[a[0]-b[0],a[1]-b[1],a[2]-b[2]]}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function normal(a,b,c){let u=sub(b,a),v=sub(c,a),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],m=Math.hypot(...n)||1;return n.map(x=>x/m)}
+function camera(){let ca=Math.cos(yaw),sa=Math.sin(yaw),ce=Math.cos(elev),se=Math.sin(elev);return{right:[ca,0,-sa],up:[-sa*se,ce,-ca*se],out:[sa*ce,se,ca*ce]}}
+let rippleScale=4;
+function point(z,k){
+ const t=seekTime()-z/velocity(),[lateral,vertical]=grooveValues(t);
+ const x=lateral*rippleScale,v=vertical*rippleScale;
+ // A 45/45 stereo V has independent wall displacement. At the surface,
+ // left edge = L-30 and right edge = R+30; bottom=(L+R)/2,-30+(L-R)/2.
+ // Mono is the special case vertical=0: fixed 60 µm width and 30 µm depth.
+ const edgeL=x-GROOVE_W/2+v,edgeR=x+GROOVE_W/2-v;
+ // Note: vertical motion shifts both surface intersections equally in this
+ // 45/45 convention; the bottom moves vertically while top stays at y=0.
+ const xx=[-105,edgeL,(edgeL+x)/2,x,(edgeR+x)/2,edgeR,105];
+ const yy=[0,0,(-GROOVE_D+v)/2,-GROOVE_D+v,(-GROOVE_D+v)/2,0,0];
+ return [xx[k],yy[k],z];
+}
+// Adjacent turns of the same spiral carry audio exactly one revolution apart.
+// This deliberately uses audio at distinct times rather than cloning the centre waveform.
+function groovePoint(z,k,turn,pitch,scale=rippleScale){
+ if(turn===0&&scale===rippleScale)return point(z,k);
+ const time=seekTime()-z/velocity()+turn*60/RPM;
+ const [lat,vert]=grooveValues(time),x=lat*scale+turn*pitch,v=vert*scale;
+ const left=x-GROOVE_W/2+v,right=x+GROOVE_W/2-v;
+ const outer=pitch/2;
+ const xx=[turn*pitch-outer,left,(left+x)/2,x,(right+x)/2,right,turn*pitch+outer];
+ const yy=[0,0,(-GROOVE_D+v)/2,-GROOVE_D+v,(-GROOVE_D+v)/2,0,0];
+ return [xx[k],yy[k],z];
+}
+// Scale inset: a record at true disc proportions and a 1 mm square top-view.
+// Stage 3 is the EXISTING draw3D geometry, never a separate generated approximation.
+function insetCanvas(id){const el=$(id),ctx=el.getContext('2d');return [ctx,el.width,el.height]}
+function drawScaleInset(){
+ const [a,w,h]=insetCanvas('discInset');a.clearRect(0,0,w,h);a.fillStyle='#101e2b';a.fillRect(0,0,w,h);
+ const cx=w/2,cy=h/2,R=Math.min(w,h)*.43;
+ a.fillStyle='#070a10';a.beginPath();a.arc(cx,cy,R,0,TAU);a.fill();
+ for(let r=R*.43;r<R*.98;r+=1.65){a.beginPath();a.arc(cx,cy,r,0,TAU);a.strokeStyle=Math.round(r*10)%3?'#26313c':'#3b4853';a.lineWidth=.65;a.stroke()}
+ a.fillStyle='#bb503e';a.beginPath();a.arc(cx,cy,R*.30,0,TAU);a.fill();a.fillStyle='#121b22';a.beginPath();a.arc(cx,cy,2,0,TAU);a.fill();
+ // Radius of the highlighted location is scaled to 152.4 mm record radius.
+ const r=R*(+$('radius').value)/152.4,ang=-.72,x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r;
+ a.strokeStyle='#ff9b35';a.lineWidth=1.4;a.beginPath();a.arc(x,y,4.5,0,TAU);a.stroke();
+ a.beginPath();a.moveTo(x+4,y-3);a.lineTo(w-7,9);a.stroke();
+ a.fillStyle='#ffb66d';a.font='8px system-ui';a.fillText('locator',w-37,8);
+ const [b,bw,bh]=insetCanvas('groovesInset');b.clearRect(0,0,bw,bh);b.fillStyle='#101e2b';b.fillRect(0,0,bw,bh);
+ // 1 x 1 mm top view: ~100 µm centre-to-centre pitch, 60 µm width.
+ const pad=8,sz=Math.min(bw-2*pad,bh-2*pad),left=(bw-sz)/2,top=(bh-sz)/2,pitch=sz*.1,grooveWidth=sz*.06;
+ b.fillStyle='#243443';b.fillRect(left,top,sz,sz);
+ b.save();b.beginPath();b.rect(left,top,sz,sz);b.clip();
+ for(let k=-6;k<=6;k++){
+  const gy=top+sz/2+k*pitch;
+  // slight constant-width curvature: each line is one groove, NOT a taper.
+  const curve=x=>2*Math.sin((x-left)/sz*TAU*.8+k*.18);
+  b.lineWidth=grooveWidth;b.strokeStyle='#0b1723';b.beginPath();
+  for(let j=0;j<=80;j++){let x=left+sz*j/80,y=gy+curve(x);if(j===0)b.moveTo(x,y);else b.lineTo(x,y)}b.stroke();
+  for(let off of [-grooveWidth/2,grooveWidth/2]){b.lineWidth=.9;b.strokeStyle='#b5c0c8';b.beginPath();for(let j=0;j<=80;j++){let x=left+sz*j/80,y=gy+curve(x)+off;if(j===0)b.moveTo(x,y);else b.lineTo(x,y)}b.stroke()}
+ }
+ const visible=Math.min(1,+$('length').value),width=visible*sz;
+ b.fillStyle='rgba(255,151,41,.22)';b.fillRect(left+(sz-width)/2,top+sz/2-grooveWidth/2,width,grooveWidth);
+ b.strokeStyle='#ff9b35';b.lineWidth=1.7;b.strokeRect(left+(sz-width)/2,top+sz/2-grooveWidth/2,width,grooveWidth);
+ b.restore();
+ $('insetLength').textContent=(+$('length').value).toFixed(1)+' mm'+(+$('length').value>1?' (extends beyond inset)':'');
+}
+function draw3D(){if(!s)return;const [W,H]=sizing(scene,s,320,240);s.fillStyle='#e8eff4';s.fillRect(0,0,W,H);
+const cam=camera(),len=+$('length').value*1000,z0=-len/2,z1=len/2,corners=[];
+const grooveCount=+$('grooveCount').value,pitch=+$('groovePitch').value;
+const turns=Array.from({length:grooveCount},(_,i)=>i-(grooveCount-1)/2);
+const pt=(z,k,turn=0)=>grooveCount===1?point(z,k):groovePoint(z,k,turn,pitch);
+const sceneHalf=grooveCount===1?Math.max(110,45+80*rippleScale):((grooveCount-1)/2)*pitch+Math.max(105,pitch/2)+65*rippleScale;
+for(let x of [-Math.max(sceneHalf,165),Math.max(sceneHalf,165)])for(let y of [-GROOVE_D,($('showStylus').checked?280:0)])for(let z of [z0,z1])corners.push([x,y,z]);
+const bounds=corners.map(p=>[dot(p,cam.right),dot(p,cam.up)]),bx=bounds.map(p=>p[0]),by=bounds.map(p=>p[1]);
+const fit=.84*Math.min(W/(Math.max(...bx)-Math.min(...bx)),H/(Math.max(...by)-Math.min(...by)))*+$('zoom').value,target=[0,$('showStylus').checked?90:-15,0];
+function project(p){let q=sub(p,target);return[W/2+dot(q,cam.right)*fit,H/2-dot(q,cam.up)*fit,dot(q,cam.out)]}
+const N=Math.max(180,Math.min(450,Math.ceil(len/12))),faces=[];
+// Build a SINGLE continuous vinyl surface. The original multi-groove version
+// repeated the outer flat shoulders of each groove, causing gaps/overlaps
+// (white strips and folded triangles) as pitch was changed.
+// Groove walls are independent; the flat land is ONE strip between adjacent
+// groove edges. Where physical grooves intersect, there is no flat land.
+const lightDir=[-.35,.82,.45];
+function addQuad(quad,base,turn=0){
+ const n=normal(quad[0],quad[1],quad[3]);
+ const brightness=.70+.30*Math.abs(dot(n,lightDir));
+ const dim=turn===0?1:.87;
+ const color=`rgb(${base.map(x=>Math.min(255,Math.round(x*brightness*dim+(1-dim)*205))).join(',')})`;
+ for(const tri of [[quad[0],quad[1],quad[2]],[quad[0],quad[2],quad[3]]]){
+  const pp=tri.map(project);
+  faces.push({p:pp,z:pp.reduce((a,v)=>a+v[2],0)/3,color});
+ }
+}
+for(let i=1;i<=N;i++){
+ const za=z0+len*(i-1)/N,zb=z0+len*i/N;
+ const grooves=turns.map(turn=>({turn,
+  a:Array.from({length:7},(_,k)=>pt(za,k,turn)),
+  b:Array.from({length:7},(_,k)=>pt(zb,k,turn))}));
+ // Each V consists of four wall panels. Never include the old outer shoulders.
+ for(const {turn,a,b} of grooves){
+  for(let k=1;k<=4;k++){
+   const base=encoding==='stereo'?(k<=2?[62,159,225]:[245,164,78]):(k<=2?[175,190,202]:[151,171,185]);
+   addQuad([a[k],b[k],b[k+1],a[k+1]],base,turn);
+  }
+ }
+ // Extend the vinyl surface fully to both outside edges of the scene.
+ const first=grooves[0],last=grooves[grooves.length-1];
+ addQuad([[ -sceneHalf,0,za],[-sceneHalf,0,zb],first.b[1],first.a[1]],[186,193,198]);
+ addQuad([last.a[5],last.b[5],[sceneHalf,0,zb],[sceneHalf,0,za]],[186,193,198]);
+ // One continuous flat bridge per pair, only if a positive land exists.
+ // For overlap the red collision overlay (below) replaces the missing land.
+ for(let j=0;j<grooves.length-1;j++){
+  const a=grooves[j],b=grooves[j+1];
+  const g0=b.a[1][0]-a.a[5][0],g1=b.b[1][0]-a.b[5][0];
+  if(g0>=0&&g1>=0){
+   addQuad([a.a[5],a.b[5],b.b[1],b.a[1]],[186,193,198]);
+  }else if(g0>=0||g1>=0){
+   // Clip the land exactly where the two groove edges meet, avoiding
+   // an inverted quadrilateral as the land tapers to zero.
+   const frac=g0/(g0-g1),zc=za+(zb-za)*frac;
+   const x=a.a[5][0]+(a.b[5][0]-a.a[5][0])*frac;
+   const tip=[x,0,zc];
+   if(g0>0)addQuad([a.a[5],tip,tip,b.a[1]],[186,193,198]);
+   else addQuad([tip,a.b[5],b.b[1],tip],[186,193,198]);
+  }
+ }
+}
+faces.sort((a,b)=>a.z-b.z);for(let f of faces){s.beginPath();s.moveTo(f.p[0][0],f.p[0][1]);s.lineTo(f.p[1][0],f.p[1][1]);s.lineTo(f.p[2][0],f.p[2][1]);s.closePath();s.fillStyle=f.color;s.fill()}
+// Fine reference grid on the flat top of the vinyl, clipped to either side of the moving groove.
+// Longitudinal guides stay at fixed x coordinates: the groove edges visibly weave relative to them.
+function gridSegment(p,q,color,width=1){const a=project(p),b=project(q);s.strokeStyle=color;s.lineWidth=width;s.beginPath();s.moveTo(a[0],a[1]);s.lineTo(b[0],b[1]);s.stroke()}
+if(grooveCount===1){for(const x of [-95,-75,-55,55,75,95])gridSegment([x,.22,z0],[x,.22,z1],'rgba(27,75,102,.42)',.9);
+const nGrid=24;
+for(let j=0;j<=nGrid;j++){
+ const z=z0+(z1-z0)*j/nGrid,edgeL=point(z,1)[0],edgeR=point(z,5)[0];
+ gridSegment([-105,.35,z],[edgeL,.35,z],'rgba(36,84,112,.45)',.85);
+ gridSegment([edgeR,.35,z],[105,.35,z],'rgba(36,84,112,.45)',.85);
+}
+}
+// Thin edge lines follow the lateral modulation and make the groove swing easier to read.
+for(const turn of turns)for(const k of [1,5]){
+ s.strokeStyle='rgba(48,93,122,.82)';s.lineWidth=1.15;s.beginPath();
+ const nEdge=Math.max(250,Math.min(950,Math.round(len/3)));
+ for(let i=0;i<=nEdge;i++){let z=z0+len*i/nEdge,p=project(pt(z,k,turn));if(i===0)s.moveTo(p[0],p[1]);else s.lineTo(p[0],p[1])}s.stroke();
+}
+// Faint transverse relief hatching ON EACH 45° WALL independently.
+// Density responds to local longitudinal curvature: sharper bends get
+// more lines; broad gentle sections receive fewer. Lines terminate at the
+// groove bottom and never cross over onto the other channel's wall.
+function wallReliefLines(wall){
+ const edge=wall==='left'?1:5, mid=wall==='left'?2:4;
+ const samples=1400, zs=[], ys=[];
+ for(let i=0;i<=samples;i++){
+  const z=z0+len*i/samples,t=seekTime()-z/velocity();
+  // Read the actual channel, NOT the shared groove bottom. A silent
+  // left/right channel must never receive contour marks from its neighbour.
+  const y=encoding==='stereo'?stereoValues(t)[wall==='left'?0:1]:combined(t);
+  zs.push(z);ys.push(y);
+ }
+ const signalRange=Math.max(...ys)-Math.min(...ys);
+ // An unmodulated wall is a smooth face. Suppress its hatching altogether.
+ if(signalRange<1e-5)return;
+ const raw=[];
+ for(let i=0;i<=samples;i++){
+  const d=10,a=Math.max(0,i-d),b=Math.min(samples,i+d);
+  raw.push(Math.abs(ys[a]-2*ys[i]+ys[b]));
+ }
+ const peakCurvature=Math.max(...raw);
+ if(peakCurvature<1e-7)return;
+ // Concentrate more guides at tight bends, with only a small baseline
+ // contribution to leave the broad, gentle portions more open.
+ const peakMode=$('peakRelief').checked;
+ // In the alternative mode, positive waveform crests carry darker, denser
+ // lines; negative troughs remain mostly smooth. Original mode is unchanged.
+ const centre=(Math.max(...ys)+Math.min(...ys))/2;
+ const amplitude=Math.max(1e-8,signalRange/2);
+ const crestFactor=y=>{
+  const phase=Math.max(-1,Math.min(1,(y-centre)/amplitude));
+  return .055+.945*Math.pow((phase+1)/2,2.0);
+ };
+ const weights=raw.map((v,i)=>(.035+3.3*Math.sqrt(v/peakCurvature))*(peakMode?crestFactor(ys[i]):1));
+ const smoothed=weights.map((_,i)=>{
+  let sum=0,n=0;
+  for(let j=Math.max(0,i-5);j<=Math.min(samples,i+5);j++){sum+=weights[j];n++}
+  return sum/n;
+ });
+ const cumulative=[0];
+ for(let i=1;i<=samples;i++)cumulative[i]=cumulative[i-1]+(smoothed[i-1]+smoothed[i])/2;
+ const total=cumulative[samples];
+ // Twice the previous density (175 -> 350), still confined to the active wall.
+ const targetLines=Math.max(72,Math.min(350,Math.round(len/13.5)));
+ s.save();s.lineWidth=+$('reliefThickness').value;s.lineCap='round';
+ const reliefOpacity=+$('reliefDarkness').value/100;
+ s.strokeStyle=wall==='left'?`rgba(15,48,82,${reliefOpacity})`:`rgba(110,61,23,${reliefOpacity})`;
+ for(let n=1;n<targetLines;n++){
+  const goal=total*n/targetLines;
+  let lo=0,hi=samples;
+  while(lo<hi){const m=(lo+hi)>>1;if(cumulative[m]<goal)lo=m+1;else hi=m}
+  const i=Math.max(1,lo),part=(goal-cumulative[i-1])/Math.max(1e-9,cumulative[i]-cumulative[i-1]);
+  const alpha=Math.max(0,Math.min(1,part));
+  const z=zs[i-1]+(zs[i]-zs[i-1])*alpha;
+  // In locally flat regions, don't draw artificial cross-wall strokes.
+  const localCurvature=raw[i-1]*(1-alpha)+raw[i]*alpha;
+  if(localCurvature<peakCurvature*.012)continue;
+  if(peakMode){
+   const localSignal=ys[i-1]*(1-alpha)+ys[i]*alpha;
+   // Fade guides near troughs; retain the same line width and wall colour.
+   const strength=crestFactor(localSignal);
+   s.globalAlpha=.12+.88*strength;
+  }else s.globalAlpha=1;
+  const p0=point(z,edge),p1=point(z,mid),p2=point(z,3);
+  s.beginPath();
+  for(let j=0;j<=8;j++){
+   const u=j/8,p=u<=.5?
+    p0.map((v,k)=>v+(p1[k]-v)*u*2):
+    p1.map((v,k)=>v+(p2[k]-v)*(u-.5)*2);
+   const q=project(p);if(j===0)s.moveTo(q[0],q[1]);else s.lineTo(q[0],q[1]);
+  }
+  s.stroke();
+ }
+ s.restore();
+}
+wallReliefLines('left');
+wallReliefLines('right');
+// True physical clearance is calculated at ×1, independent of the 3D
+// movement exaggeration. Mark only the z-sections where edges collide.
+if(grooveCount>1){
+ let minGap=Infinity,hitCount=0;
+ const checkN=Math.max(300,Math.min(1400,Math.round(len/3)));
+ for(let j=0;j<turns.length-1;j++){
+  let path=[];
+  function flush(){
+   if(path.length<2){path=[];return}
+   // A solid red band marks the physical collision region on the visible
+   // vinyl surface, drawn last so intersecting walls cannot hide it.
+   s.save();s.fillStyle='rgba(221,29,45,.76)';
+   s.strokeStyle='rgba(135,0,16,.95)';s.lineWidth=1.1;
+   s.beginPath();
+   for(let k=0;k<path.length;k++){
+    const q=project([path[k].x0,.9,path[k].z]);
+    if(k===0)s.moveTo(q[0],q[1]);else s.lineTo(q[0],q[1]);
+   }
+   for(let k=path.length-1;k>=0;k--){
+    const q=project([path[k].x1,.9,path[k].z]);s.lineTo(q[0],q[1]);
+   }
+   s.closePath();s.fill();s.stroke();s.restore();
+   path=[];
+  }
+  for(let i=0;i<=checkN;i++){
+   const z=z0+len*i/checkN;
+   const rightPhysical=groovePoint(z,5,turns[j],pitch,1)[0];
+   const leftPhysical=groovePoint(z,1,turns[j+1],pitch,1)[0];
+   const gap=leftPhysical-rightPhysical;
+   minGap=Math.min(minGap,gap);
+   if(gap<-.05){
+    hitCount++;
+    // Highlight the matching section in the VISUAL geometry, which may
+    // be magnified. Clamp a minimum stripe width for easy identification.
+    const r=pt(z,5,turns[j])[0],l=pt(z,1,turns[j+1])[0];
+    const mid=(r+l)/2,half=Math.max(3,Math.abs(r-l)/2);
+    path.push({z,x0:mid-half,x1:mid+half});
+   }else flush();
+  }
+  flush();
+ }
+ const box=$('grooveClearance');
+ box.classList.toggle('warning',minGap<-.05);
+ box.textContent=minGap<-.05?`⚠ OVERLAP ${(-minGap).toFixed(1)} µm · red marks ${Math.round(hitCount/(checkN*(turns.length-1))*100)}% of sampled length`:
+   `Minimum land: ${minGap.toFixed(1)} µm${minGap<10?' · very close':''}`;
+}else{
+ $('grooveClearance').classList.remove('warning');
+ $('grooveClearance').textContent='1 groove · clearance not applicable';
+}
+// Stylus geometry: a rounded tip and a single cone that expands directly
+// to the diameter of the cylindrical shaft. NO oversized collar or shoulder.
+// The original red V groove-contact reference is drawn separately below.
+// All coordinates are in µm on the same scale as the vinyl groove.
+// The last few micrometres are a rounded spherical contact surface, not a
+// sharp cutting point. Overall dimensions are illustrative, since the photo
+// does not provide a calibration scale or manufacturer drawing.
+if($('showStylus').checked){
+ const bottom=point(0,3),R=15.24,xc=bottom[0];
+ const yc=bottom[1]+R*Math.SQRT2;
+ // 60° included-angle cone, smoothly joined to spherical 0.6 mil tip.
+ const halfAngle=Math.PI/6;
+ const tangentTheta=Math.PI/2-halfAngle;
+ const tipJoinY=yc-R*Math.cos(tangentTheta);
+ const tipJoinR=R*Math.sin(tangentTheta);
+ // Increase the cone height until it meets the remaining shaft diameter.
+ const stemRadius=70;
+ const coneRadius=stemRadius;
+ const coneTop=tipJoinY+(coneRadius-tipJoinR)/Math.tan(halfAngle);
+ const stemTop=coneTop+112;
+ const sides=44,rows=12,faces=[];
+ function vtx(y,r,a){return [xc+r*Math.cos(a),y,r*Math.sin(a)]}
+ function add(poly,part,a){
+  const p=poly.map(project);
+  faces.push({p,part,a,depth:p.reduce((acc,v)=>acc+v[2],0)/p.length});
+ }
+ function band(y0,r0,y1,r1,part){
+  for(let i=0;i<sides;i++){
+   const a=i*2*Math.PI/sides,b=(i+1)*2*Math.PI/sides;
+   add([vtx(y0,r0,a),vtx(y0,r0,b),vtx(y1,r1,b),vtx(y1,r1,a)],part,(a+b)/2);
+  }
+ }
+ function annulus(y,r0,r1,part){
+  for(let i=0;i<sides;i++){
+   const a=i*2*Math.PI/sides,b=(i+1)*2*Math.PI/sides;
+   add([vtx(y,r0,a),vtx(y,r0,b),vtx(y,r1,b),vtx(y,r1,a)],part,(a+b)/2);
+  }
+ }
+ // Rounded tip transitions tangentially into the conical section.
+ for(let row=0;row<rows;row++){
+  const a=tangentTheta*row/rows,b=tangentTheta*(row+1)/rows;
+  band(yc-R*Math.cos(a),R*Math.sin(a),yc-R*Math.cos(b),R*Math.sin(b),'tip');
+ }
+ band(tipJoinY,tipJoinR,coneTop,coneRadius,'cone');
+ // Direct cone-to-shaft transition: no wider-diameter collar.
+ band(coneTop,stemRadius,stemTop,stemRadius,'stem');
+ // Draw rear faces before front faces for the semi-transparent solid.
+ faces.sort((a,b)=>a.depth-b.depth);
+ s.save();s.lineJoin='round';
+ for(const f of faces){
+  const sideLight=.5+.5*Math.cos(f.a-.65);
+  const glint=Math.pow(Math.max(0,Math.cos(f.a-1.05)),14);
+  const isCone=f.part==='tip'||f.part==='cone';
+  const gray=Math.round((isCone?63:105)+75*sideLight+48*glint);
+  const opacity=isCone?.47:(f.part==='stem'?.25:.32);
+  s.beginPath();f.p.forEach((v,i)=>i?s.lineTo(v[0],v[1]):s.moveTo(v[0],v[1]));s.closePath();
+  s.fillStyle=`rgba(${gray},${Math.min(255,gray+2)},${Math.min(255,gray+7)},${opacity})`;
+  s.fill();
+ }
+ // A few fine silhouette rings, not the many rings of the old stepped shape.
+ for(const [y,r,alpha] of [[coneTop,stemRadius,.48],[stemTop,stemRadius,.32]]){
+  s.beginPath();
+  for(let i=0;i<=sides;i++){
+   const p=project(vtx(y,r,i*2*Math.PI/sides));
+   if(i===0)s.moveTo(p[0],p[1]);else s.lineTo(p[0],p[1]);
+  }
+  s.strokeStyle=`rgba(43,53,62,${alpha})`;s.lineWidth=1.0;s.stroke();
+ }
+ s.restore();
+}
+// Retain the original rigid red V contact/reference marker in the groove.
+// It is a groove-angle guide, not the outline of the rounded diamond.
+const stylusBottom=point(0,3),stylusHalfWidth=GROOVE_W/2,stylusHeight=GROOVE_D;
+const va=project([stylusBottom[0]-stylusHalfWidth,stylusBottom[1]+stylusHeight,0]),
+      vb=project(stylusBottom),
+      vd=project([stylusBottom[0]+stylusHalfWidth,stylusBottom[1]+stylusHeight,0]);
+s.save();s.strokeStyle='#dc2938';s.lineWidth=2.5;s.lineJoin='round';
+s.beginPath();s.moveTo(va[0],va[1]);s.lineTo(vb[0],vb[1]);s.lineTo(vd[0],vd[1]);s.stroke();s.restore();
+// Pink follows the actual bottom of the stereo groove. No separate green
+// line is drawn in 3D: the vertical component is already included in this
+// physical bottom path and shown independently in the 2D plot/end-on inset.
+if(encoding==='stereo'){
+ s.strokeStyle='#f28bbb';s.lineWidth=2.8;s.lineJoin='round';s.lineCap='round';
+ s.shadowBlur=0;s.beginPath();
+ const count=Math.max(300,Math.min(1500,Math.ceil(len/2)));
+ for(let i=0;i<=count;i++){
+  const z=z0+len*i/count,p=project(point(z,3));
+  if(i===0)s.moveTo(p[0],p[1]);else s.lineTo(p[0],p[1]);
+ }
+ s.stroke();s.shadowBlur=0;
+}
+
+}
+
+// An end-on view of the same 45/45 groove at the orange cross-section (z=0).
+// Crosshair follows the actual groove bottom (no stylus ball).
+// Geometry is drawn in micrometres, with a fixed scale for the groove.
+function drawStylusEnd(){
+ const el=$('stylusEnd');if(!el)return;
+ const [W,H]=sizing(el,el.getContext('2d'),260,135),c=el.getContext('2d');
+ const fontScale=Math.max(.8,Math.min(2.5,Math.min(W/340,H/205))); // scale canvas labels with the floating viewport
+ c.fillStyle='#101e2b';c.fillRect(0,0,W,H);
+ const t=seekTime(),mono=encoding==='mono';
+ const [L,R]=mono?[combined(t),combined(t)]:stereoValues(t);
+ const lateral=mono?combined(t):(L+R)/2,vertical=mono?0:(L-R)/2;
+ $('endOnTitle').textContent=mono?'MONO · END-ON CROSS-SECTION':'STEREO · END-ON CROSS-SECTION';
+ $('endOnLegend').innerHTML=mono?'<span style="color:#f28bbb">Pink ↔ sideways only · constant depth</span>':'<span style="color:#f28bbb">Pink ↔ lateral</span> · <span style="color:#a7e8a1">Green ↕ vertical</span>';
+ // Show wall movement with the same magnification as the 3D ripple control.
+ const k=rippleScale, x=lateral*k,v=vertical*k;
+ const scale=Math.min((W-22)/102,(H-12)/53)*.679; // 70% of previous end-on geometry scale; movement magnification unchanged
+ const ox=W*.5,oy=H*.25;
+ const px=u=>ox+u*scale,py=u=>oy-u*scale;
+ const grooveLeft=x-30+v,grooveRight=x+30-v,grooveBottom=-30+v;
+ // End-on geometry reduced to 70% of previous size, independently of movement magnification.
+ // The groove V is shown as an unfilled cut in a flat vinyl surface.
+ c.fillStyle='#354657';c.beginPath();c.moveTo(0,py(0));c.lineTo(px(grooveLeft),py(0));
+ c.lineTo(px(x),py(grooveBottom));c.lineTo(px(grooveRight),py(0));c.lineTo(W,py(0));c.lineTo(W,H);c.lineTo(0,H);c.closePath();c.fill();
+ c.strokeStyle='#8296a6';c.lineWidth=1;c.beginPath();c.moveTo(0,py(0));c.lineTo(px(grooveLeft),py(0));c.moveTo(px(grooveRight),py(0));c.lineTo(W,py(0));c.stroke();
+ // Unmodulated reference: dashed centreline and ghost groove.
+ c.setLineDash([4,4]);c.strokeStyle='#738a9d';c.lineWidth=1;
+ c.beginPath();c.moveTo(px(0),3);c.lineTo(px(0),H-2);c.stroke();
+ c.strokeStyle='#607788';c.beginPath();c.moveTo(px(-30),py(0));c.lineTo(px(0),py(-30));c.lineTo(px(30),py(0));c.stroke();c.setLineDash([]);
+ // Each wall's position is derived from the left/right PCM sample.
+ c.lineWidth=3;c.lineJoin='round';
+ c.strokeStyle=mono?'#d1dae2':'#65d3ff';c.beginPath();c.moveTo(px(grooveLeft),py(0));c.lineTo(px(x),py(grooveBottom));c.stroke();
+ c.strokeStyle=mono?'#d1dae2':'#ffc579';c.beginPath();c.moveTo(px(x),py(grooveBottom));c.lineTo(px(grooveRight),py(0));c.stroke();
+ // Crosshair at the true groove bottom; no stylus ball or cantilever.
+ const cx=px(x),cy=py(grooveBottom);
+ const neutralTipY=-30;
+ const neutralX=px(0),neutralY=py(neutralTipY);
+ // Faint reference axes through the neutral stylus position.
+ c.save();c.setLineDash([6,4]);c.lineWidth=1.9;
+ c.strokeStyle='rgba(242,139,187,.78)';c.beginPath();c.moveTo(5,neutralY);c.lineTo(W-5,neutralY);c.stroke();
+ c.strokeStyle='rgba(167,232,161,.78)';c.beginPath();c.moveTo(neutralX,5);c.lineTo(neutralX,H-5);c.stroke();c.restore();
+ // A short time-history of the groove bottom, not an extra groove.
+ const trailSeconds=.022;
+ c.save();c.beginPath();c.rect(1,1,W-2,H-2);c.clip();
+ for(let i=1;i<=44;i++){
+  const a=i/44,tm=t-trailSeconds*(1-a);
+  const [tl,tr]=mono?[combined(tm),combined(tm)]:stereoValues(tm);
+  const hx=px((tl+tr)*.5*k),hy=py(neutralTipY+(tl-tr)*.5*k);
+  if(i===1){c.beginPath();c.moveTo(hx,hy)}else c.lineTo(hx,hy);
+ }
+ c.strokeStyle='rgba(245,245,255,.19)';c.lineWidth=1;c.stroke();c.restore();
+ // The coloured projections terminate at the current groove bottom.
+ c.save();c.lineWidth=3.2;c.setLineDash([7,4]);c.shadowBlur=5;c.shadowColor='#f28bbb';
+ c.strokeStyle='#ff8fc9';c.beginPath();c.moveTo(neutralX,cy);c.lineTo(cx,cy);c.stroke();
+ if(!mono){c.strokeStyle='#b2ff9e';c.shadowColor='#b2ff9e';c.beginPath();c.moveTo(cx,neutralY);c.lineTo(cx,cy);c.stroke()}c.restore();
+ // Small reference marks show the two independent displacement components.
+ c.fillStyle='#f28bbb';c.beginPath();c.arc(cx,neutralY,3,0,Math.PI*2);c.fill();
+ if(!mono){c.fillStyle='#a7e8a1';c.beginPath();c.arc(neutralX,cy,3,0,Math.PI*2);c.fill()}
+ c.fillStyle='#f28bbb';c.font=`bold ${Math.round(10*fontScale)}px system-ui`;c.fillText('↔',Math.max(4,Math.min(W-18,cx+12)),Math.min(H-4,cy+4));
+ if(!mono){c.fillStyle='#a7e8a1';c.fillText('↕',Math.max(4,Math.min(W-18,cx+25)),Math.min(H-4,cy+4))}
+ // High-contrast crosshair marks the lowest point of the V.
+ c.save();c.strokeStyle='#ff5858';c.lineWidth=3;c.beginPath();c.moveTo(cx-33,cy);c.lineTo(cx+33,cy);c.moveTo(cx,cy-33);c.lineTo(cx,cy+33);c.stroke();c.fillStyle='#fff1ef';c.beginPath();c.arc(cx,cy,2,0,Math.PI*2);c.fill();c.restore();
+ c.font=`${Math.round(10*fontScale)}px system-ui`;c.fillStyle='#b8cad9';c.fillText('VINYL SURFACE',7,Math.max(11,py(0)-6));
+ if(!mono){c.fillStyle='#65d3ff';c.fillText('L',Math.max(6,px(grooveLeft)-12),Math.min(H-5,py(-16)));
+ c.fillStyle='#ffc579';c.fillText('R',Math.min(W-14,px(grooveRight)+6),Math.min(H-5,py(-16)))}
+ // Readouts always reference 33⅓ RPM, not the animation rate.
+ updateMeasurementLabel();
+ const [voltsL,voltsR]=cartridgeVoltages(t);
+ // Display the measured groove displacement independently of its derivative.
+ // Both coordinates are physical (not the ×4/×8 display exaggeration).
+
+ // Correct conversion: mV / (5mV per 5cm/s) = cm/s, so 1 mV = 1 cm/s.
+ const hCms=(voltsL+voltsR)/2;
+ const vCms=(voltsL-voltsR)/2;
+ $('motionVelocity').textContent=`H ${hCms>=0?'+':''}${hCms.toFixed(4)} cm/s · V ${vCms>=0?'+':''}${vCms.toFixed(4)} cm/s`;
+ // The crosshair denotes the tracked groove-bottom position, not a second
+ // diamond tip. Draw velocity FROM that same point, with a fixed scale based
+ // on a surrounding time window so its length never renormalises each frame.
+ if($('showMotionAtTip').checked){
+  // Same time-window normalisation as the live vector display.
+  // Neither arrow uses the instantaneous peak as a changing scale.
+  const localPeak=velocityVectorPeak(t);
+  const spanPx=Math.min(W,H)*.19;
+  const dx=hCms/localPeak*spanPx,dy=-vCms/localPeak*spanPx;
+  const endX=cx+dx,endY=cy+dy,len=Math.hypot(dx,dy);
+  if(len>1.4){
+   c.save();c.beginPath();c.rect(0,0,W,H);c.clip();
+   c.strokeStyle='#08141e';c.lineWidth=5.2;c.lineCap='round';
+   c.beginPath();c.moveTo(cx,cy);c.lineTo(endX,endY);c.stroke();
+   c.strokeStyle='#ffffff';c.lineWidth=2.8;c.beginPath();c.moveTo(cx,cy);c.lineTo(endX,endY);c.stroke();
+   const angle=Math.atan2(dy,dx),head=9;
+   c.fillStyle='#ffffff';c.beginPath();c.moveTo(endX,endY);
+   c.lineTo(endX-head*Math.cos(angle-.48),endY-head*Math.sin(angle-.48));
+   c.lineTo(endX-head*Math.cos(angle+.48),endY-head*Math.sin(angle+.48));c.closePath();c.fill();
+   c.restore();
+  }
+  // Red crosshair remains the position marker and stays visually on top.
+  c.save();c.strokeStyle='#ff5858';c.lineWidth=2;c.beginPath();
+  c.moveTo(cx-8,cy);c.lineTo(cx+8,cy);c.moveTo(cx,cy-8);c.lineTo(cx,cy+8);c.stroke();c.restore();
+ }
+ $('stylusLeftVoltage').innerHTML=voltageText(voltsL);
+ $('stylusRightVoltage').innerHTML=voltageText(voltsR);
+ // Channel outputs are the two 45° coil responses; H and V are derived
+ // mechanical velocity components, not separate electrical output wires.
+ $('stylusHVoltage').innerHTML=voltageText((voltsL+voltsR)/2);
+ $('stylusVVoltage').innerHTML=voltageText((voltsL-voltsR)/2);
+ $('voltageModeNote').textContent=mono?
+  'MONO: two identical outputs · only sideways movement':
+  'STEREO: L and R differ when vertical movement is present';
+ drawVoltageTraces(t,mono);
+ drawVelocityVectors(t,mono,voltsL,voltsR);
+ c.fillStyle='#ffb0a8';c.fillText('Groove bottom',Math.max(5,Math.min(W-88,cx+12)),Math.max(12,Math.min(H-7,cy-8)));
+ $('stylusReadout').innerHTML=mono?`Sideways ${lateral.toFixed(4)} µm · vertical 0.0000 µm · nominal depth 30 µm <strong class="mag-warning">${k===1?'MOVEMENT ×1 — ACTUAL SCALE':`MOVEMENT ×${k} — VISUAL ONLY`}</strong>`:`L ${L.toFixed(4)} µm · R ${R.toFixed(4)} µm · sideways ${lateral.toFixed(4)} µm · vertical ${vertical.toFixed(4)} µm <strong class="mag-warning">${k===1?'MOVEMENT ×1 — ACTUAL SCALE':`MOVEMENT ×${k} — VISUAL ONLY`}</strong>`;
+}
+// Shared, symmetric 12 ms velocity scale: both windows use exactly the
+// same instantaneous time and surrounding peak, avoiding mismatched arrow
+// magnitudes that previously looked like one arrow was lagging the other.
+function velocityVectorPeak(t){
+ let peak=1e-12;
+ for(let j=-24;j<=24;j++){
+  const [l,r]=cartridgeVoltages(t+j*.00025);
+  peak=Math.max(peak,Math.hypot((l+r)/2,(l-r)/2));
+ }
+ return peak;
+}
+// Velocity vector explanation. Left diagram: true H/V velocities and their
+// resultant. Right diagram: signed projections onto the two 45° pickup axes.
+// All arrows use the same local scale, based on physical stylus velocity;
+// visual groove ripple magnification NEVER enters these calculations.
+function drawVelocityVectors(t,mono,leftMv,rightMv){
+ const el=$('stylusVectors'),ctx=el.getContext('2d');
+ const box=el.getBoundingClientRect(),W=Math.max(220,Math.round(box.width)),H=150;
+ const dpr=Math.min(devicePixelRatio||1,2);
+ if(el.width!==Math.round(W*dpr)||el.height!==Math.round(H*dpr)){
+  el.width=Math.round(W*dpr);el.height=Math.round(H*dpr);
+ }
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.fillStyle='#0b1c2a';ctx.fillRect(0,0,W,H);
+ // H and V in mV-equivalent units, so they add directly to L and R.
+ const Hmv=(leftMv+rightMv)/2,Vmv=(leftMv-rightMv)/2;
+ // Match the cross-section arrow's time-window normalisation, not a
+ // frame-by-frame autoscale (which made these vectors seem to race ahead).
+ const extent=velocityVectorPeak(t);
+ const half=W/2,cy=79,r=Math.min(52,half*.40),scale=r/extent;
+ const ox1=half*.5,ox2=half*1.5;
+ function line(x1,y1,x2,y2,color,width=1,dashed=false){
+  ctx.beginPath();ctx.lineWidth=width;ctx.strokeStyle=color;ctx.setLineDash(dashed?[3,4]:[]);
+  ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);
+ }
+ function arrow(ox,oy,vx,vy,color,width=2.5){
+  const x=ox+vx,y=oy-vy,length=Math.hypot(vx,vy);
+  if(length<1.2){ctx.fillStyle=color;ctx.beginPath();ctx.arc(ox,oy,2,0,Math.PI*2);ctx.fill();return}
+  line(ox,oy,x,y,color,width);
+  const a=Math.atan2(-vy,vx),head=Math.min(8,Math.max(4,length*.22));
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x-head*Math.cos(a-.48),y-head*Math.sin(a-.48));
+  ctx.lineTo(x-head*Math.cos(a+.48),y-head*Math.sin(a+.48));ctx.closePath();ctx.fill();
+ }
+ function caption(str,x,y,color='#b7cfdf',align='center',size=10){
+  ctx.font=`${size}px ${y===28?'ui-monospace, monospace':'system-ui'}`;ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(str,x,y);
+ }
+ for(const ox of [ox1,ox2]){
+  line(ox-r-9,cy,ox+r+9,cy,'#3c576b');line(ox,cy-r-9,ox,cy+r+9,'#3c576b');
+  ctx.beginPath();ctx.arc(ox,cy,2.2,0,Math.PI*2);ctx.fillStyle='#8ba7b9';ctx.fill();
+ }
+ // Physical horizontal = x, physical upward = y.
+ arrow(ox1,cy,Hmv*scale,0,'#f28bbb',2.6);
+ arrow(ox1,cy,0,Vmv*scale,'#a7e8a1',2.6);
+ arrow(ox1,cy,Hmv*scale,Vmv*scale,'#f5f8ff',2.3);
+ caption('STYLUS VELOCITY',ox1,15,'#d9e9f6', 'center',10);
+ caption('H / V → resultant',ox1,138,'#9bb7ca','center',9);
+ // A positive L projects onto the up-right 45° axis; positive R
+ // onto the down-right 45° axis, following L=H+V, R=H−V.
+ const q=Math.SQRT1_2;
+ line(ox2-r*q-8,cy+r*q+8,ox2+r*q+8,cy-r*q-8,'#376b80',1,true);
+ line(ox2-r*q-8,cy-r*q-8,ox2+r*q+8,cy+r*q+8,'#79603d',1,true);
+ arrow(ox2,cy,leftMv*scale*q,leftMv*scale*q,'#65d3ff',3);
+ arrow(ox2,cy,rightMv*scale*q,-rightMv*scale*q,'#ffc579',3);
+ caption('45° PICKUP OUTPUTS',ox2,15,'#d9e9f6','center',10);
+ caption('L = H + V  ·  R = H − V',ox2,138,'#9bb7ca','center',9);
+ // Signed instantaneous component readouts make even tiny vectors intelligible.
+ function signed(v){return (v>=0?'+':'−')+Math.abs(v).toPrecision(2).padStart(7,' ')}
+ caption('H '+signed(Hmv)+' · V '+signed(Vmv)+' mV',ox1,28,'#c5d9e8','center',9);
+ caption('L '+signed(leftMv)+' · R '+signed(rightMv)+' mV',ox2,28,'#c5d9e8','center',9);
+ // Small separator keeps two vector constructions easy to compare.
+ line(half,34,half,H-8,'#2a4659',1);
+ // Stable text: do not alternate between one-line and two-line messages
+ // several times per second. Direction and magnitude are in the live arrows.
+ const hint=measurementRate()===0?
+  'Zero playback speed: the actual-speed cartridge outputs are zero.':
+  mono?'MONO · Sideways velocity only; left and right outputs are equal.':
+  'STEREO · Both 45° outputs depend on velocity; arrows show direction and polarity.';
+ if($('vectorHint').textContent!==hint)$('vectorHint').textContent=hint;
+}
+// Paired, signed, instantaneous output waveforms (not sound level meters).
+// A mono record through a stereo pickup has two coincident traces. Draw
+// the right trace dashed in mono so both channels remain identifiable.
+function drawVoltageTraces(t,mono){
+ const el=$('stylusVoltageTraces'),ctx=el.getContext('2d');
+ const rect=el.getBoundingClientRect(),W=Math.max(150,Math.round(rect.width)),H=65;
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ if(el.width!==Math.round(W*dpr)||el.height!==Math.round(H*dpr)){
+  el.width=Math.round(W*dpr);el.height=Math.round(H*dpr);
+ }
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.fillStyle='#0e2030';ctx.fillRect(0,0,W,H);
+ const span=.012,N=Math.max(120,Math.round(W)),left=[],right=[];
+ let peak=1e-9;
+ for(let i=0;i<N;i++){
+  const ti=t+(i/(N-1)-.5)*span;
+  const [l,r]=cartridgeVoltages(ti);
+  left.push(l);right.push(r);
+  peak=Math.max(peak,Math.abs(l),Math.abs(r));
+ }
+ // Both channels share the same scale, and the horizontal centre line is 0 V.
+ const mid=H/2,amplitude=H*.39;
+ ctx.strokeStyle='#466177';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();
+ ctx.strokeStyle='#3d586a';ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);
+ function trace(data,color,dashed){
+  ctx.beginPath();ctx.lineWidth=dashed?1.7:2.1;
+  ctx.strokeStyle=color;ctx.setLineDash(dashed?[5,3]:[]);
+  data.forEach((v,i)=>{const x=i*W/(N-1),y=mid-v/peak*amplitude;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+  ctx.stroke();ctx.setLineDash([]);
+ }
+ trace(left,'#65d3ff',false);
+ trace(right,mono?'#ffc579':'#ffc579',mono);
+ ctx.fillStyle='#9db8cc';ctx.font='9px system-ui';ctx.fillText('0 V',3,mid-3);
+ ctx.textAlign='right';ctx.fillText('12 ms window',W-3,H-4);ctx.textAlign='left';
+}
+// Detach both independent inset windows from the 3D pane's stacking
+// context. Otherwise a raised inset can NEVER cover the 2D viewport when
+// the 3D pane is below it, regardless of the inset's own z-index.
+(function detachIndependentWindows(){
+ for(const selector of ['.groove-end-window','.stylus-panel']){
+  const el=document.querySelector(selector);
+  if(!el)return;
+  const rect=el.getBoundingClientRect();
+  el.style.width=rect.width+'px';
+  el.style.height=rect.height+'px';
+  el.style.left=rect.left+'px';
+  el.style.top=rect.top+'px';
+  el.classList.add('floating');
+  document.body.appendChild(el);
+ }
+})();
+
+// Opening arrangement based on the supplied 1693 × 896 reference screenshot.
+// Applied once on load; user movement/resizing is never overridden.
+(function setScreenshotOpeningLayout(){
+ const reference={width:1693,height:911};
+ const windows=[
+  ['.groove-end-window',537,192,670,702],
+  ['#wave2dPane',92,405,800,489],
+  ['#groove3dPane',480,546,442,350],
+  ['.stylus-panel',976,173,710,721]
+ ];
+ function apply(){
+  if(innerWidth<1100||innerHeight<650)return; // retain existing compact-screen defaults
+  const sx=innerWidth/reference.width,sy=innerHeight/reference.height;
+  windows.forEach(([selector,x,y,w,h],index)=>{
+   const el=document.querySelector(selector);if(!el)return;
+   const left=Math.max(0,Math.round(x*sx));
+   const top=Math.max(0,Math.round(y*sy));
+   const width=Math.max(280,Math.min(innerWidth-left,Math.round(w*sx)));
+   const height=Math.max(210,Math.min(innerHeight-top,Math.round(h*sy)));
+   Object.assign(el.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px'});
+   el.style.setProperty('z-index',String(5001+index),'important');
+  });
+  if(typeof drawPlot==='function')drawPlot();
+  if(typeof draw3D==='function')draw3D();
+  if(typeof drawStylusEnd==='function')drawStylusEnd();
+ }
+ // Run after the existing viewport initialisation animation frames.
+ window.addEventListener('load',()=>setTimeout(apply,220),{once:true});
+})();
+
+// Window focus: selecting any floating viewport raises it above the others.
+// Inline !important overrides the fixed CSS stacking values while leaving
+// docking, dragging, canvas scrubbing and resizing unchanged.
+(function setupFloatingWindowFocus(){
+ const selector='#wave2dPane, #groove3dPane, .groove-end-window, .stylus-panel';
+ let topLayer=5004;
+ const isFloating=el=>el.classList.contains('floating-2d') ||
+   el.classList.contains('floating-3d') || el.classList.contains('floating');
+ function raise(el){
+  if(!el || !isFloating(el))return;
+  el.style.setProperty('z-index',String(++topLayer),'important');
+ }
+ document.addEventListener('pointerdown',e=>raise(e.target.closest(selector)),true);
+ document.addEventListener('focusin',e=>raise(e.target.closest(selector)),true);
+ // Initialise in their existing visual order; any subsequent click wins.
+ requestAnimationFrame(()=>{
+  for(const el of document.querySelectorAll(selector))raise(el);
+ });
+ // If a view is docked, remove its old high stacking priority.
+ const observer=new MutationObserver(records=>{
+  for(const record of records){
+   const el=record.target;
+   if(!isFloating(el))el.style.removeProperty('z-index');
+  }
+ });
+ for(const el of document.querySelectorAll(selector))observer.observe(el,{attributes:true,attributeFilter:['class']});
+})();
+
+// Two independent draggable and resizable floating viewports. Each has a
+// top-left and bottom-right grip. Moving one never moves or resizes the other.
+(function setupFloatingViewports(){
+ function attach(selector,minW,minH,redraw){
+  const panel=document.querySelector(selector),head=panel.querySelector('.stylus-head');
+  const updateTextScale=()=>{
+   const r=panel.getBoundingClientRect();
+   const factor=Math.max(.8,Math.min(2.5,Math.min(r.width/370,r.height/330)));
+   panel.style.setProperty('--inset-text-scale',factor.toFixed(3));
+  };
+  if(window.ResizeObserver)new ResizeObserver(()=>{updateTextScale();redraw()}).observe(panel);
+  updateTextScale();
+  let drag=null,resize=null;
+  function clamp(){
+   if(!panel.classList.contains('floating'))return;
+   let w=Math.min(panel.offsetWidth,window.innerWidth),h=Math.min(panel.offsetHeight,window.innerHeight);
+   if(w!==panel.offsetWidth)panel.style.width=w+'px';
+   if(h!==panel.offsetHeight)panel.style.height=h+'px';
+   const x=parseFloat(panel.style.left)||0,y=parseFloat(panel.style.top)||0;
+   panel.style.left=Math.max(0,Math.min(window.innerWidth-w,x))+'px';
+   panel.style.top=Math.max(0,Math.min(window.innerHeight-h,y))+'px';
+  }
+  function floatAtCurrentPosition(){
+   if(panel.classList.contains('floating'))return;
+   const r=panel.getBoundingClientRect();
+   panel.style.width=r.width+'px';panel.style.height=r.height+'px';
+   panel.classList.add('floating');panel.style.left=r.left+'px';panel.style.top=r.top+'px';clamp();
+  }
+  head.addEventListener('pointerdown',e=>{
+   if(e.button!==0||e.target.closest('.resize-corner'))return;
+   e.preventDefault();floatAtCurrentPosition();
+   const r=panel.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};
+   head.setPointerCapture(e.pointerId);
+  });
+  head.addEventListener('pointermove',e=>{
+   if(!drag||e.pointerId!==drag.id)return;
+   const w=panel.offsetWidth,h=panel.offsetHeight;
+   panel.style.left=Math.max(0,Math.min(window.innerWidth-w,e.clientX-drag.dx))+'px';
+   panel.style.top=Math.max(0,Math.min(window.innerHeight-h,e.clientY-drag.dy))+'px';
+  });
+  const stopDrag=e=>{if(drag&&e.pointerId===drag.id)drag=null};
+  head.addEventListener('pointerup',stopDrag);head.addEventListener('pointercancel',stopDrag);
+  for(const grip of panel.querySelectorAll('.resize-corner')){
+   const topLeft=grip.classList.contains('top-left');
+   grip.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    e.preventDefault();e.stopPropagation();floatAtCurrentPosition();
+    const r=panel.getBoundingClientRect();
+    resize={id:e.pointerId,x:e.clientX,y:e.clientY,w:r.width,h:r.height,left:r.left,top:r.top,topLeft};
+    grip.setPointerCapture(e.pointerId);
+   });
+   grip.addEventListener('pointermove',e=>{
+    if(!resize||e.pointerId!==resize.id)return;
+    const dx=e.clientX-resize.x,dy=e.clientY-resize.y;
+    if(resize.topLeft){
+     const right=resize.left+resize.w,bottom=resize.top+resize.h;
+     const left=Math.max(0,Math.min(right-Math.min(minW,right),resize.left+dx));
+     const top=Math.max(0,Math.min(bottom-Math.min(minH,bottom),resize.top+dy));
+     panel.style.left=left+'px';panel.style.top=top+'px';
+     panel.style.width=(right-left)+'px';panel.style.height=(bottom-top)+'px';
+    }else{
+     panel.style.width=Math.max(Math.min(minW,window.innerWidth-resize.left),Math.min(window.innerWidth-resize.left,resize.w+dx))+'px';
+     panel.style.height=Math.max(Math.min(minH,window.innerHeight-resize.top),Math.min(window.innerHeight-resize.top,resize.h+dy))+'px';
+    }
+    redraw();
+   });
+   const stopResize=e=>{if(resize&&e.pointerId===resize.id){resize=null;redraw()}};
+   grip.addEventListener('pointerup',stopResize);grip.addEventListener('pointercancel',stopResize);
+  }
+  window.addEventListener('resize',()=>{clamp();redraw()});
+  // Detach these panels immediately, so moving the 3D viewport never carries them.
+  requestAnimationFrame(floatAtCurrentPosition);
+ }
+ attach('.groove-end-window',230,170,drawStylusEnd);
+ attach('.stylus-panel',280,300,drawStylusEnd);
+})();
+
+
+// Independent 2D viewport: move by header, resize by either corner, scrub on canvas.
+(function setupFloating2D(){
+ const pane=document.getElementById('wave2dPane'),head=document.getElementById('wave2dHeader'),dock=document.getElementById('dock2D');
+ let dragging=null,resizing=null;
+ function repaint(){if(typeof drawPlot==='function')drawPlot();}
+ function clamp(){if(!pane.classList.contains('floating-2d'))return;
+  const w=pane.offsetWidth,h=pane.offsetHeight;
+  pane.style.left=Math.max(0,Math.min(Math.max(0,innerWidth-w),parseFloat(pane.style.left)||0))+'px';
+  pane.style.top=Math.max(0,Math.min(Math.max(0,innerHeight-h),parseFloat(pane.style.top)||0))+'px';}
+ function undock(){pane.classList.remove('floating-2d');pane.style.left='';pane.style.top='';pane.style.width='';pane.style.height='';dock.textContent='Float 2D';repaint();}
+ function float(initial=false){if(pane.classList.contains('floating-2d'))return;
+  const r=pane.getBoundingClientRect();
+  pane.style.left=(initial?Math.max(10,Math.round(innerWidth*.035)):r.left)+'px';
+  pane.style.top=(initial?Math.max(85,Math.round(innerHeight*.35)):r.top)+'px';
+  pane.style.width=(initial?Math.min(Math.round(innerWidth*.45),Math.max(280,innerWidth-30)):r.width)+'px';
+  pane.style.height=(initial?Math.min(Math.round(innerHeight*.40),Math.max(210,innerHeight-100)):r.height)+'px';
+  pane.classList.add('floating-2d');dock.textContent='Dock 2D';clamp();repaint();}
+ dock.addEventListener('click',e=>{e.stopPropagation();pane.classList.contains('floating-2d')?undock():float();});
+ head.addEventListener('pointerdown',e=>{
+  if(e.button!==0||e.target.closest('button,label,input,select'))return;
+  if(!pane.classList.contains('floating-2d'))float();
+  const r=pane.getBoundingClientRect();dragging={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};head.setPointerCapture(e.pointerId);e.preventDefault();
+ });
+ head.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==dragging.id)return;
+  pane.style.left=Math.max(0,Math.min(innerWidth-pane.offsetWidth,e.clientX-dragging.dx))+'px';
+  pane.style.top=Math.max(0,Math.min(innerHeight-pane.offsetHeight,e.clientY-dragging.dy))+'px';});
+ head.addEventListener('pointerup',()=>dragging=null);head.addEventListener('pointercancel',()=>dragging=null);
+ for(const grip of pane.querySelectorAll('.float2d-grip')){
+  grip.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();float();
+   const r=pane.getBoundingClientRect();resizing={id:e.pointerId,x:e.clientX,y:e.clientY,l:r.left,t:r.top,w:r.width,h:r.height,tl:grip.classList.contains('float2d-top-left')};grip.setPointerCapture(e.pointerId);});
+  grip.addEventListener('pointermove',e=>{if(!resizing||e.pointerId!==resizing.id)return;
+   const dx=e.clientX-resizing.x,dy=e.clientY-resizing.y;
+   if(resizing.tl){const right=resizing.l+resizing.w,bottom=resizing.t+resizing.h;
+    const left=Math.max(0,Math.min(right-280,resizing.l+dx)),top=Math.max(0,Math.min(bottom-210,resizing.t+dy));
+    pane.style.left=left+'px';pane.style.top=top+'px';pane.style.width=right-left+'px';pane.style.height=bottom-top+'px';
+   }else{pane.style.width=Math.max(280,Math.min(innerWidth-resizing.l,resizing.w+dx))+'px';pane.style.height=Math.max(210,Math.min(innerHeight-resizing.t,resizing.h+dy))+'px';}
+   repaint();});
+  grip.addEventListener('pointerup',()=>{resizing=null;repaint();});grip.addEventListener('pointercancel',()=>resizing=null);
+ }
+ window.addEventListener('resize',()=>{clamp();repaint();});
+ requestAnimationFrame(()=>float(true));
+})();
+
+// Independent 3D viewport: header drag moves the window; the canvas still orbits the groove.
+(function setupFloating3D(){
+ const pane=document.getElementById('groove3dPane'),head=document.getElementById('groove3dHeader'),dock=document.getElementById('dock3D');
+ let drag=null,resize=null;
+ function repaint(){if(typeof draw3D==='function')draw3D();}
+ function clamp(){if(!pane.classList.contains('floating-3d'))return;
+  const w=pane.offsetWidth,h=pane.offsetHeight;
+  pane.style.left=Math.max(0,Math.min(innerWidth-w,parseFloat(pane.style.left)||0))+'px';
+  pane.style.top=Math.max(0,Math.min(innerHeight-h,parseFloat(pane.style.top)||0))+'px';}
+ function undock(){pane.classList.remove('floating-3d');pane.style.left='';pane.style.top='';pane.style.width='';pane.style.height='';dock.textContent='Float 3D';repaint();}
+ function float(){if(pane.classList.contains('floating-3d'))return;
+  const r=pane.getBoundingClientRect();pane.style.left=r.left+'px';pane.style.top=r.top+'px';pane.style.width=r.width+'px';pane.style.height=r.height+'px';pane.classList.add('floating-3d');dock.textContent='Dock 3D';clamp();repaint();}
+ dock.addEventListener('click',e=>{e.stopPropagation();pane.classList.contains('floating-3d')?undock():float();});
+ head.addEventListener('pointerdown',e=>{
+  if(e.button!==0||e.target.closest('button,label,input,select,.ripple-controls,.orbit-option'))return;
+  if(!pane.classList.contains('floating-3d'))float();
+  const r=pane.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};head.setPointerCapture(e.pointerId);e.preventDefault();});
+ head.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;
+  pane.style.left=Math.max(0,Math.min(innerWidth-pane.offsetWidth,e.clientX-drag.dx))+'px';
+  pane.style.top=Math.max(0,Math.min(innerHeight-pane.offsetHeight,e.clientY-drag.dy))+'px';});
+ head.addEventListener('pointerup',()=>drag=null);head.addEventListener('pointercancel',()=>drag=null);
+ for(const grip of pane.querySelectorAll('.float3d-grip')){
+  grip.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();float();
+   const r=pane.getBoundingClientRect();resize={id:e.pointerId,x:e.clientX,y:e.clientY,l:r.left,t:r.top,w:r.width,h:r.height,tl:grip.classList.contains('float3d-top-left')};grip.setPointerCapture(e.pointerId);});
+  grip.addEventListener('pointermove',e=>{if(!resize||resize.id!==e.pointerId)return;
+   const dx=e.clientX-resize.x,dy=e.clientY-resize.y;
+   if(resize.tl){const right=resize.l+resize.w,bottom=resize.t+resize.h;
+    const left=Math.max(0,Math.min(right-280,resize.l+dx)),top=Math.max(0,Math.min(bottom-210,resize.t+dy));
+    pane.style.left=left+'px';pane.style.top=top+'px';pane.style.width=right-left+'px';pane.style.height=bottom-top+'px';
+   }else{pane.style.width=Math.max(280,Math.min(innerWidth-resize.l,resize.w+dx))+'px';pane.style.height=Math.max(210,Math.min(innerHeight-resize.t,resize.h+dy))+'px';}
+   repaint();});
+  grip.addEventListener('pointerup',()=>{resize=null;repaint();});grip.addEventListener('pointercancel',()=>resize=null);
+ }
+ window.addEventListener('resize',()=>{clamp();repaint();});
+ // Detach at the original location once the main workspace has been laid out.
+ requestAnimationFrame(()=>{float();});
+})();
+
+$('peakRelief').addEventListener('change',draw3D);
+for(const id of ['grooveCount','groovePitch']){
+ $(id).addEventListener('input',()=>{
+  $('groovePitchOut').textContent=$('groovePitch').value+' µm';
+  draw3D();
+ });
+}
+
+for(const id of ['reliefThickness','reliefDarkness']){
+ $(id).addEventListener('input',()=>{
+  $('reliefThicknessOut').textContent=(+$('reliefThickness').value).toFixed(1)+' px';
+  $('reliefDarknessOut').textContent=$('reliefDarkness').value+'%';
+  draw3D();
+ });
+}
+let lastDraw=0;function draw(){drawPlot();draw3D();drawStylusEnd();drawStereoBias();drawScaleInset();$('lengthOut').textContent=$('length').value+' mm';$('radiusOut').textContent=$('radius').value+' mm';$('zoomOut').textContent=(+$('zoom').value).toFixed(1)+'×';$('speedOut').textContent=speedText(rate());$('waveTimeZoomOut').textContent=hZoom().toFixed(hZoom()<1?2: hZoom()<10?1:0)+'×';$('waveHeightZoomOut').textContent=vZoom().toFixed(vZoom()<1?2:1)+'×';}
+function tick(t){if(playing){preciseSeek=null;const current=getTime();$('position').value=Math.round((current%timelineDur())/timelineDur()*1000);if(t-lastDraw>=16){draw();lastDraw=t}}requestAnimationFrame(tick)}
+$('playToggle').onclick=()=>playing?pause():play();$('reset').onclick=reset;
+for(const id of ['odeSwitch','greenSwitch','toneASwitch','toneBSwitch'])$(id).onclick=()=>toggleSource(id);
+for(const id of ['odeLevel','greenLevel','toneALevel','toneBLevel'])$(id).addEventListener('input',updateLevels);
+for(const id of ['length','radius','zoom','waveTimeZoom','waveHeightZoom'])$(id).addEventListener('input',draw);
+document.querySelectorAll('.ripple-btn').forEach(btn=>btn.addEventListener('click',()=>{rippleScale=+btn.dataset.mult;document.querySelectorAll('.ripple-btn').forEach(b=>b.classList.toggle('active',b===btn));$('rippleNote').textContent=rippleScale===1?'MOVEMENT ×1 — ACTUAL SCALE':`MOVEMENT ×${rippleScale} — VISUAL ONLY · groove dimensions unchanged`;draw3D();drawStylusEnd()}));
+function applyPlaybackRate(newRate,fromSlider=false){
+ selectedRate=newRate;
+ if(!fromSlider)$('speed').value=Math.round(rateToSlider(newRate));
+ document.querySelectorAll('.rpm-btn').forEach(b=>{const active=Math.abs(Number(b.dataset.rate)-newRate)<1e-9;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});
+ if(ctxAudio&&masterGain)masterGain.gain.setTargetAtTime(newRate,ctxAudio.currentTime,.015);
+ if(playing&&ctxAudio){
+  pausedAt=getTime();audioStart=ctxAudio.currentTime;activeRate=rate();
+  if(activeRate===0){stopSources();$('status').textContent='Turntable stopped — silent and stationary.'}
+  else if(!(encoding==='stereo'?stereoLSource:odeSource)){launchSources();$('status').textContent=`Playing: ${encoding} audio and groove in sync.`}
+  else for(let src of [odeSource,greenSource,toneASource,toneBSource,stereoLSource,stereoRSource])if(src)src.playbackRate.setTargetAtTime(activeRate,ctxAudio.currentTime,.015);
+ }else activeRate=rate();
+ draw();
+}
+document.querySelectorAll('.rpm-btn').forEach(b=>b.addEventListener('click',()=>applyPlaybackRate(Number(b.dataset.rate))));
+$('speed').addEventListener('input',()=>applyPlaybackRate(sliderToRate(+$('speed').value),true));
+
+function selectGreensleevesInstrument(){
+ const mode=$('greenInstrument').value;
+ $('recordingLoader').hidden=mode!=='real';
+ if(mode==='real'&&!realGuitarPcm){$('status').textContent='Download the real guitar MP3, then select it using the file chooser.';return}
+ const t=getTime();greenPcm=mode==='real'?realGuitarPcm:mode==='guitar'?greenGuitarPcm:greenSynthPcm;
+ if(playing&&ctxAudio&&activeRate>0){pausedAt=t;launchSources()}
+ $('status').textContent=mode==='real'?'Playing the actual guitar recording (mono mix).':mode==='guitar'?'Greensleeves: plucked-string simulation.':'Greensleeves: electronic melody.';
+ draw();
+}
+
+function setEncoding(mode){
+ if(mode===encoding)return;
+ const wasPlaying=playing,t=getTime();
+ if(wasPlaying){stopSources();playing=false;}
+ encoding=mode;document.body.classList.toggle('stereo-mode',mode==='stereo');
+ $('modeMono').classList.toggle('active',mode==='mono');$('modeStereo').classList.toggle('active',mode==='stereo');
+ $('modeMono').setAttribute('aria-pressed',String(mode==='mono'));$('modeStereo').setAttribute('aria-pressed',String(mode==='stereo'));
+ $('traceLegend').innerHTML=mode==='mono'?'<span class="ode">━ Ode</span><span class="green">━ Greensleeves</span><span style="color:#8bdb93">━ Tone A</span><span style="color:#bca3ff">━ Tone B</span><span class="mix">━ Sum / groove</span>':'<span style="color:#65d3ff">━ Left</span><span style="color:#ffc579">━ Right</span><span class="mix">━ Lateral</span><span style="color:#a7e8a1">━ Vertical</span>';
+ $('grooveTitle').textContent=mode==='stereo'?'3D groove · independent end-on + analysis windows':'3D · Mono groove';
+ $('rippleNote').textContent=rippleScale===1?'MOVEMENT ×1 — ACTUAL SCALE':`MOVEMENT ×${rippleScale} — VISUAL ONLY · groove dimensions unchanged`;
+ pausedAt=mode==='stereo'?0:t;audioStart=ctxAudio?ctxAudio.currentTime:0;
+ if(wasPlaying){playing=true;launchSources();}
+ $('status').textContent=mode==='stereo'?'Stereo mode: load a 2-channel file or try the built-in left/right test.':'Mono mode: four independent sources.';
+ draw();
+}
+$('modeMono').onclick=()=>setEncoding('mono');
+$('modeStereo').onclick=()=>setEncoding('stereo');
+for(const side of ['left','right']){
+ $(side+'Level').addEventListener('input',()=>{updateStereoLevels();draw()});
+ $(side+'Switch').addEventListener('click',()=>{const el=$(side+'Switch'),on=el.classList.toggle('on');el.textContent=on?'ON':'OFF';el.setAttribute('aria-pressed',String(on));updateStereoLevels();draw()});
+}
+$('stereoDemo').onclick=()=>{
+ const t=getTime();[stereoLeft,stereoRight]=stereoTest();stereoName='Built-in L/R/Both test';
+ $('stereoFileInfo').textContent='Demo ready: 440 Hz left (0–2 s), right (2–4 s), both (4–6 s).';
+ $('stereoDemo').classList.add('active');pausedAt=0;
+ if(playing&&encoding==='stereo')launchSources();draw();
+};
+$('stereoFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ $('stereoFileInfo').textContent='Decoding '+file.name+'…';
+ try{
+  await init();const decoded=await ctxAudio.decodeAudioData(await file.arrayBuffer());
+  if(decoded.numberOfChannels<2)throw new Error('This file is mono. Please choose a genuine 2-channel stereo recording.');
+  if(decoded.duration>300)throw new Error('Please use a recording shorter than 5 minutes.');
+  const rendered=await resampleRecording(decoded);
+  const len=rendered.length;if(len<2)throw new Error('Recording is empty.');
+  const out=[new Float32Array(rendered.getChannelData(0)),new Float32Array(rendered.getChannelData(1))];
+  let peak=0;
+  for(const a of out)for(let i=0;i<a.length;i++)peak=Math.max(peak,Math.abs(a[i]));
+  if(peak>1e-8)for(const a of out)for(let i=0;i<a.length;i++)a[i]/=peak;
+  const wasPlaying=playing;if(wasPlaying&&encoding==='stereo')stopSources();
+  for(const a of out)reconstructedPcm.add(a);
+  [stereoLeft,stereoRight]=out;stereoName=file.name;pausedAt=0;
+  $('stereoFileInfo').textContent=`Loaded: ${file.name} · ${decoded.duration.toFixed(1)} s · ${decoded.numberOfChannels} channels (L/R preserved) · filtered 22.05 kHz / smooth reconstruction`;
+  $('stereoDemo').classList.remove('active');
+  if(wasPlaying&&encoding==='stereo')launchSources();draw();
+ }catch(err){$('stereoFileInfo').textContent='Could not load: '+err.message;}
+});
+$('greenInstrument').addEventListener('change',selectGreensleevesInstrument);
+$('recordingFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ $('recordingInfo').textContent='Decoding '+file.name+'…';
+ try{
+  await init();const bytes=await file.arrayBuffer();const decoded=await ctxAudio.decodeAudioData(bytes);
+  const rendered=await resampleRecording(decoded);
+  const len=rendered.length,out=new Float32Array(len);
+  const channels=Array.from({length:rendered.numberOfChannels},(_,ch)=>rendered.getChannelData(ch));
+  let peak=0;
+  for(let i=0;i<len;i++){
+   let v=0;for(const arr of channels)v+=arr[i];
+   v/=channels.length;out[i]=v;peak=Math.max(peak,Math.abs(v));
+  }
+  // Scale real recorded PCM to a unit peak. The µm slider then determines groove displacement.
+  if(peak>.000001)for(let i=0;i<out.length;i++)out[i]/=peak;
+  reconstructedPcm.add(out);
+  realGuitarPcm=out;
+  $('recordingInfo').textContent='Loaded: '+file.name+' · '+decoded.duration.toFixed(1)+' seconds · '+decoded.numberOfChannels+' channel(s) → mono';
+  if($('greenInstrument').value==='real')selectGreensleevesInstrument();
+ }catch(err){$('recordingInfo').textContent='Could not read this audio file: '+err.message;}
+});
+for(const id of ['toneAFreq','toneBFreq'])$(id).addEventListener('input',changeToneFrequency);
+$('position').addEventListener('input',()=>{preciseSeek=null;const t=seekTime();if(playing){pause();pausedAt=t;play()}else{pausedAt=t;draw()}});
+// Fine steps are measured in recording time, independent of the coarse slider resolution.
+document.querySelectorAll('.nudge-btn').forEach(btn=>{
+ btn.addEventListener('click',()=>setPrecisePosition(seekTime()+Number(btn.dataset.nudge)/1000));
+});
+$('viewSeparate').onclick=()=>{view='separate';$('viewSeparate').classList.add('active');$('viewOverlay').classList.remove('active');draw()};
+$('viewOverlay').onclick=()=>{view='overlay';$('viewOverlay').classList.add('active');$('viewSeparate').classList.remove('active');draw()};
+// Drag the waveform horizontally to browse the underlying recording with sub-slider precision.
+// The centre orange marker stays fixed while the waveform moves beneath it.
+// At any horizontal zoom, a full plot-width drag corresponds to one visible time window.
+let plotScrub=null;
+canvas.addEventListener('pointerdown',e=>{
+ if(e.button!==0 && e.pointerType==='mouse')return;
+ if(playing)pause();
+ const rect=canvas.getBoundingClientRect();
+ const plotWidth=Math.max(1,rect.width-88); // matches plot margins: 75px left, 13px right
+ plotScrub={id:e.pointerId,startX:e.clientX,startTime:seekTime(),secondsPerPixel:winSeconds()/hZoom()/plotWidth};
+ canvas.classList.add('scrubbing');
+ canvas.setPointerCapture(e.pointerId);
+ e.preventDefault();
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!plotScrub||e.pointerId!==plotScrub.id)return;
+ const newTime=plotScrub.startTime-(e.clientX-plotScrub.startX)*plotScrub.secondsPerPixel;
+ setPrecisePosition(newTime);
+});
+function stopPlotScrub(e){
+ if(!plotScrub||e.pointerId!==plotScrub.id)return;
+ plotScrub=null;canvas.classList.remove('scrubbing');
+ if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
+}
+canvas.addEventListener('pointerup',stopPlotScrub);
+canvas.addEventListener('pointercancel',stopPlotScrub);
+$('showStylus').addEventListener('change',draw3D);
+scene.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,yaw,elev};scene.classList.add('orbit-dragging');scene.setPointerCapture(e.pointerId)});
+scene.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.006;elev=Math.max(.12,Math.min(1.54,drag.elev+(e.clientY-drag.y)*.006));draw3D()});
+scene.addEventListener('pointerup',()=>{drag=null;scene.classList.remove('orbit-dragging')});scene.addEventListener('pointercancel',()=>{drag=null;scene.classList.remove('orbit-dragging')});
+scene.addEventListener('wheel',e=>{e.preventDefault();$('zoom').value=Math.max(.7,Math.min(3,+$('zoom').value*(e.deltaY>0?.9:1.1)));draw()},{passive:false});
+$('waveZoomReset').onclick=()=>{$('waveTimeZoom').value=0;$('waveHeightZoom').value=0;draw()};$('resetView').onclick=()=>{yaw=.28;elev=.87;$('zoom').value=3;draw()};
+window.addEventListener('resize',draw);if(window.ResizeObserver)new ResizeObserver(draw).observe($('scene').parentElement);
+changeToneFrequency();updateLevels();updateStereoLevels();setEncoding('stereo');setPrecisePosition(.756);pausedAt=.756;draw();requestAnimationFrame(tick);
+})();
+</script></body></html>
